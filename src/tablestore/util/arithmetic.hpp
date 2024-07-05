@@ -32,7 +32,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/mempiece.hpp"
 #include <string>
 #include <stdint.h>
@@ -41,7 +41,7 @@ namespace aliyun {
 namespace tablestore {
 namespace util {
 
-Optional<std::string> toUint64(uint64_t&, const MemPiece&, int64_t radix);
+std::optional<std::string> toUint64(uint64_t&, const MemPiece&, int64_t radix);
 void format(std::string&, uint64_t num, int64_t radix);
 void hex(std::string&, const MemPiece&);
 

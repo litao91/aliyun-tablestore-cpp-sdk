@@ -39,8 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lockfree/queue.hpp>
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -138,7 +138,7 @@ Row& RangeIterator::get() throw()
     return mCurrentRow;
 }
 
-Optional<OTSError> RangeIterator::moveNext()
+std::optional<OTSError> RangeIterator::moveNext()
 {
     OTS_ASSERT(mStage == kInit || mStage == kRowsReady)
         (static_cast<size_t>(mStage));
@@ -156,7 +156,7 @@ Optional<OTSError> RangeIterator::moveNext()
             OTS_LOG_INFO(*mLogger)
                 ("Error", result.errValue())
                 .what("iteration meets an error.");
-            return Optional<OTSError>(util::move(result.mutableErrValue()));
+            return std::optional<OTSError>(util::move(result.mutableErrValue()));
         }
 
         moveAssign(mCurrentRow, util::move(result.mutableOkValue()));
@@ -172,10 +172,10 @@ Optional<OTSError> RangeIterator::moveNext()
         }
         break;
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<PrimaryKey> RangeIterator::nextStart()
+std::optional<PrimaryKey> RangeIterator::nextStart()
 {
     ScopedLock _(mMutex);
     return mNextStart;
@@ -198,12 +198,12 @@ void RangeIterator::bgloop(RangeQueryCriterion& cri)
         if (mStop.load(boost::memory_order_relaxed)) {
             break;
         }
-        Optional<OTSError> err = mClient.getRange(resp, req);
+        std::optional<OTSError> err = mClient.getRange(resp, req);
         if (mStop.load(boost::memory_order_relaxed)) {
             break;
         }
 
-        if (err.present()) {
+        if (err) {
             OTS_LOG_INFO(*mLogger)
                 ("Error", *err)
                 .what("Iteration stops because of an error.");
@@ -219,16 +219,16 @@ void RangeIterator::bgloop(RangeQueryCriterion& cri)
         {
             const CapacityUnit& cu = resp.consumedCapacity();
             ScopedLock _(mMutex);
-            if (cu.read().present()) {
+            if (cu.read()) {
                 int64_t newRead = *cu.read();
-                if (mConsumedCapacity.read().present()) {
+                if (mConsumedCapacity.read()) {
                     newRead += *mConsumedCapacity.read();
                 }
                 mConsumedCapacity.mutableRead().reset(newRead);
             }
-            if (cu.write().present()) {
+            if (cu.write()) {
                 int64_t newWrite = *cu.write();
-                if (mConsumedCapacity.write().present()) {
+                if (mConsumedCapacity.write()) {
                     newWrite += *mConsumedCapacity.write();
                 }
                 mConsumedCapacity.mutableWrite().reset(newWrite);
@@ -248,18 +248,18 @@ void RangeIterator::bgloop(RangeQueryCriterion& cri)
         }
 
         bool limited = false;
-        if (req.queryCriterion().limit().present()) {
+        if (req.queryCriterion().limit()) {
             OTS_ASSERT(rows.size() <= *req.queryCriterion().limit())
                 (rows.size())
                 (*req.queryCriterion().limit());
             *req.mutableQueryCriterion().mutableLimit() -= rows.size();
             limited = (*req.queryCriterion().limit() == 0);
         }
-        if (!resp.nextStart().present() || limited) {
+        if (!resp.nextStart() || limited) {
             OTS_LOG_INFO(*mLogger)
                 .what("No more rows in the server-side.");
 
-            if (resp.nextStart().present()) {
+            if (resp.nextStart()) {
                 ScopedLock _(mMutex);
                 moveAssign(mNextStart, util::move(resp.mutableNextStart()));
             }

@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/util/mempool.hpp"
 #include "tablestore/util/mempiece.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include <google/protobuf/io/zero_copy_stream.h>
 #include <stdint.h>
 
@@ -55,7 +55,7 @@ public:
 private:
     std::deque<util::MemPiece> mPieces;
     util::MemPiece mLastPiece;
-    util::Optional<util::MemPiece> mBackupPiece;
+    std::optional<util::MemPiece> mBackupPiece;
     int64_t mReadBytes;
 };
 

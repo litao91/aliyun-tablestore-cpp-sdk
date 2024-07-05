@@ -5,7 +5,7 @@
 #include "tablestore/util/try.hpp"
 #include "tablestore/util/foreach.hpp"
 #include <boost/static_assert.hpp>
-#include <tr1/type_traits>
+#include <type_traits>
 #include <cstring>
 
 using namespace std;
@@ -18,14 +18,14 @@ namespace plainbuffer {
 
 namespace {
 
-Optional<OTSError> issueError(const char* filename, int line)
+std::optional<OTSError> issueError(const char* filename, int line)
 {
     OTSError e(OTSError::kPredefined_CorruptedResponse);
     e.mutableMessage() = "Fail to parse protobuf in response at ";
     e.mutableMessage().append(filename);
     e.mutableMessage().push_back(':');
     pp::prettyPrint(e.mutableMessage(), line);
-    return Optional<OTSError>(util::move(e));
+    return std::optional<OTSError>(util::move(e));
 }
 
 } // namespace
@@ -36,9 +36,9 @@ Optional<OTSError> issueError(const char* filename, int line)
 namespace impl {
 
 template<class T>
-Optional<OTSError> readUint(T& out, uint8_t const *& b, uint8_t const * e)
+std::optional<OTSError> readUint(T& out, uint8_t const *& b, uint8_t const * e)
 {
-    BOOST_STATIC_ASSERT(std::tr1::is_unsigned<T>::value);
+    BOOST_STATIC_ASSERT(std::is_unsigned<T>::value);
 
     if (b + sizeof(T) > e) {
         ISSUE();
@@ -52,45 +52,45 @@ Optional<OTSError> readUint(T& out, uint8_t const *& b, uint8_t const * e)
         ++b;
     }
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readUint64(uint64_t& out, uint8_t const *& b, uint8_t const * e)
+std::optional<OTSError> readUint64(uint64_t& out, uint8_t const *& b, uint8_t const * e)
 {
     return readUint<uint64_t>(out, b, e);
 }
 
-Optional<OTSError> readUint32(uint32_t& out, uint8_t const *& b, uint8_t const * e)
+std::optional<OTSError> readUint32(uint32_t& out, uint8_t const *& b, uint8_t const * e)
 {
     return readUint<uint32_t>(out, b, e);
 }
 
-Optional<OTSError> readUint8(uint8_t& out, uint8_t const *& b, uint8_t const * e)
+std::optional<OTSError> readUint8(uint8_t& out, uint8_t const *& b, uint8_t const * e)
 {
     if (b + sizeof(uint8_t) > e) {
         ISSUE();
     }
     out = *b;
     ++b;
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readHeader(uint8_t const *& b, uint8_t const * e)
+std::optional<OTSError> readHeader(uint8_t const *& b, uint8_t const * e)
 {
     uint32_t header = 0;
     TRY(readUint32(header, b, e));
     if (header != kHeader) {
         ISSUE();
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readTag(Tag& out, uint8_t const *& b, uint8_t const * e)
+std::optional<OTSError> readTag(Tag& out, uint8_t const *& b, uint8_t const * e)
 {
     uint8_t res = 0;
     TRY(readUint8(res, b, e));
     out = static_cast<Tag>(res);
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 bool peekAndCheckTag(const Tag expect, uint8_t const * b, uint8_t const * e)
@@ -101,7 +101,7 @@ bool peekAndCheckTag(const Tag expect, uint8_t const * b, uint8_t const * e)
     return static_cast<uint8_t>(expect) == *b;
 }
 
-Optional<OTSError> readBlob(
+std::optional<OTSError> readBlob(
     string& out,
     uint8_t& checksum,
     uint8_t const *& b,
@@ -120,10 +120,10 @@ Optional<OTSError> readBlob(
     crc8MemPiece(checksum, p);
     b += len;
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readName(
+std::optional<OTSError> readName(
     string& out,
     uint8_t& checksum,
     uint8_t const *& b,
@@ -148,10 +148,10 @@ Optional<OTSError> readName(
     crc8MemPiece(checksum, p);
     b += len;
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readVariantType(
+std::optional<OTSError> readVariantType(
     VariantType& out,
     uint8_t const *& b,
     uint8_t const * e)
@@ -169,13 +169,13 @@ Optional<OTSError> readVariantType(
     FOREACH_ITER(i, types) {
         if (static_cast<uint8_t>(*i) == v) {
             out = *i;
-            return Optional<OTSError>();
+            return std::optional<OTSError>();
         }
     }
     ISSUE();
 }
 
-Optional<OTSError> readPrimaryKeyValue(
+std::optional<OTSError> readPrimaryKeyValue(
     PrimaryKeyValue& out,
     uint8_t& checksum,
     uint8_t const *& b,
@@ -223,10 +223,10 @@ Optional<OTSError> readPrimaryKeyValue(
     case kVT_InfMin: case kVT_InfMax: case kVT_AutoIncrement:
         ISSUE();
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readPrimaryKeyColumn(
+std::optional<OTSError> readPrimaryKeyColumn(
     PrimaryKeyColumn& out,
     uint8_t& checksum,
     uint8_t const *& b,
@@ -257,10 +257,10 @@ Optional<OTSError> readPrimaryKeyColumn(
     }
     crc8(checksum, colChecksum);
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readRowKey(
+std::optional<OTSError> readRowKey(
     PrimaryKey& out,
     uint8_t& checksum,
     uint8_t const *& b,
@@ -276,10 +276,10 @@ Optional<OTSError> readRowKey(
     for(;peekAndCheckTag(kTag_Cell, b, e);) {
         TRY(readPrimaryKeyColumn(out.append(), checksum, b, e));
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readAttrValue(
+std::optional<OTSError> readAttrValue(
     AttributeValue& out,
     uint8_t& checksum,
     uint8_t const *& b,
@@ -344,11 +344,11 @@ Optional<OTSError> readAttrValue(
     case kVT_Null: case kVT_InfMin: case kVT_InfMax: case kVT_AutoIncrement:
         ISSUE();
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readOptionalCellTimestamp(
-    Optional<UtcTime>& out,
+std::optional<OTSError> readstd::optionalCellTimestamp(
+    std::optional<UtcTime>& out,
     uint8_t& checksum,
     uint8_t const *& b,
     uint8_t const * e)
@@ -361,10 +361,10 @@ Optional<OTSError> readOptionalCellTimestamp(
         out.reset(UtcTime::fromMsec(static_cast<int64_t>(v)));
         crc8U64(checksum, v);
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readAttr(
+std::optional<OTSError> readAttr(
     Attribute& out,
     uint8_t& checksum,
     uint8_t const *& b,
@@ -380,7 +380,7 @@ Optional<OTSError> readAttr(
     uint8_t colChecksum = 0;
     TRY(readName(out.mutableName(), colChecksum, b, e));
     TRY(readAttrValue(out.mutableValue(), colChecksum, b, e));
-    TRY(readOptionalCellTimestamp(out.mutableTimestamp(), colChecksum, b, e));
+    TRY(readstd::optionalCellTimestamp(out.mutableTimestamp(), colChecksum, b, e));
 
     {
         Tag tag = kTag_None;
@@ -396,10 +396,10 @@ Optional<OTSError> readAttr(
     }
     crc8(checksum, colChecksum);
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readAttrs(
+std::optional<OTSError> readAttrs(
     IVector<Attribute>& out,
     uint8_t& checksum,
     uint8_t const *& b,
@@ -415,10 +415,10 @@ Optional<OTSError> readAttrs(
     for(;peekAndCheckTag(kTag_Cell, b, e);) {
         TRY(readAttr(out.append(), checksum, b, e));
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readRow(Row& out, uint8_t const *& b, uint8_t const * e)
+std::optional<OTSError> readRow(Row& out, uint8_t const *& b, uint8_t const * e)
 {
     uint8_t checksum = 0;
 
@@ -442,21 +442,21 @@ Optional<OTSError> readRow(Row& out, uint8_t const *& b, uint8_t const * e)
             ISSUE();
         }
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readRows(IVector<Row>& out, uint8_t const *& b, uint8_t const * e)
+std::optional<OTSError> readRows(IVector<Row>& out, uint8_t const *& b, uint8_t const * e)
 {
     for(; b < e;) {
         Row row;
         TRY(impl::readRow(row, b, e));
         moveAssign(out.append(), util::move(row));
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 } //namespace impl
 
-Optional<OTSError> readRow(Row& out, const MemPiece& p)
+std::optional<OTSError> readRow(Row& out, const MemPiece& p)
 {
     const uint8_t* b = p.data();
     const uint8_t* e = b + p.length();
@@ -465,10 +465,10 @@ Optional<OTSError> readRow(Row& out, const MemPiece& p)
     if (b != e) {
         ISSUE();
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> readRows(IVector<Row>& out, const MemPiece& p)
+std::optional<OTSError> readRows(IVector<Row>& out, const MemPiece& p)
 {
     const uint8_t* b = p.data();
     const uint8_t* e = b + p.length();
@@ -477,7 +477,7 @@ Optional<OTSError> readRows(IVector<Row>& out, const MemPiece& p)
     if (b != e) {
         ISSUE();
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 } // namespace plainbuffer

@@ -40,22 +40,22 @@ namespace tablestore {
 
 void Logging(const string&)
 {
-    auto_ptr<util::Logger> logger(
+    unique_ptr<util::Logger> logger(
         util::createLogger("/test-logging", util::Logger::kInfo));
     string hit = "hit";
     string miss = "miss";
     {
-        auto_ptr<util::Logger> info(logger->spawn("/info"));
+        unique_ptr<util::Logger> info(logger->spawn("/info"));
         OTS_LOG_DEBUG(*info)("NotThere", miss);
         OTS_LOG_INFO(*info)("BeThere", hit);
     }
     {
-        auto_ptr<util::Logger> debug(logger->spawn("/debug"));
+        unique_ptr<util::Logger> debug(logger->spawn("/debug"));
         OTS_LOG_DEBUG(*debug)("NotThere", miss);
         OTS_LOG_INFO(*debug)("BeThere", hit);
     }
     {
-        auto_ptr<util::Logger> error(logger->spawn("/error", util::Logger::kError));
+        unique_ptr<util::Logger> error(logger->spawn("/error", util::Logger::kError));
         OTS_LOG_INFO(*error)("NotThere", miss);
         OTS_LOG_ERROR(*error)("BeThere", hit);
     }

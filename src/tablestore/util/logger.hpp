@@ -32,7 +32,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include <tr1/memory>
+#include <memory>
 #include <memory>
 #include <string>
 
@@ -103,7 +103,7 @@ public:
     /**
      * Fetchs the singleton of SinkerCenter.
      */
-    static std::tr1::shared_ptr<SinkerCenter> singleton();
+    static std::shared_ptr<SinkerCenter> singleton();
 
     /**
      * Registers a sinker into this sinker center, thread-safely.

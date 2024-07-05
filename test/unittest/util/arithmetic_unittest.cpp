@@ -33,14 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/mempiece.hpp"
 #include "tablestore/util/foreach.hpp"
 #include "testa/testa.hpp"
-#include <tr1/tuple>
+#include <tuple>
 #include <string>
 #include <limits>
 #include <stdint.h>
 #include <cstdio>
 
 using namespace std;
-using namespace std::tr1;
+
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -52,8 +52,8 @@ uint64_t to_uint64_uppercase(const tuple<uint64_t, int>& in)
     string s;
     format(s, get<0>(in), get<1>(in));
     uint64_t res;
-    Optional<string> err = toUint64(res, MemPiece::from(s), get<1>(in));
-    TESTA_ASSERT(!err.present())
+    std::optional<string> err = toUint64(res, MemPiece::from(s), get<1>(in));
+    TESTA_ASSERT(!err)
         (*err).issue();
     return res;
 }
@@ -70,8 +70,8 @@ uint64_t to_uint64_lowercase(const tuple<uint64_t, int>& in)
     }
     fprintf(stderr, "str=%s\n", s.c_str());
     uint64_t res;
-    Optional<string> err = toUint64(res, MemPiece::from(s), get<1>(in));
-    TESTA_ASSERT(!err.present())
+    std::optional<string> err = toUint64(res, MemPiece::from(s), get<1>(in));
+    TESTA_ASSERT(!err)
         (*err).issue();
     return res;
 }

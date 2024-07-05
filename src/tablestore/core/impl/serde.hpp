@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../protocol/zero_copy_stream.hpp"
 #include "tablestore/core/error.hpp"
 #include "tablestore/core/types.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/mempiece.hpp"
 #include "tablestore/util/mempool.hpp"
 #include <memory>
@@ -58,7 +58,7 @@ namespace tablestore {
 namespace core {
 namespace impl {
 
-util::Optional<OTSError> deserialize(OTSError&, std::deque<util::MemPiece>&);
+std::optional<OTSError> deserialize(OTSError&, std::deque<util::MemPiece>&);
 
 template<Action kAction>
 class Serde {};
@@ -73,8 +73,8 @@ public:
     typedef typename ApiTraits<kApi_ListTable>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -91,8 +91,8 @@ public:
     typedef typename ApiTraits<kApi_CreateTable>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -109,8 +109,8 @@ public:
     typedef typename ApiTraits<kApi_DeleteTable>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -127,8 +127,8 @@ public:
     typedef typename ApiTraits<kApi_DescribeTable>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -145,8 +145,8 @@ public:
     typedef typename ApiTraits<kApi_UpdateTable>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -163,8 +163,8 @@ public:
     typedef typename ApiTraits<kApi_ComputeSplitsBySize>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -181,8 +181,8 @@ public:
     typedef typename ApiTraits<kApi_PutRow>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -199,8 +199,8 @@ public:
     typedef typename ApiTraits<kApi_GetRow>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -217,8 +217,8 @@ public:
     typedef typename ApiTraits<kApi_GetRange>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -235,8 +235,8 @@ public:
     typedef typename ApiTraits<kApi_UpdateRow>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -253,8 +253,8 @@ public:
     typedef typename ApiTraits<kApi_DeleteRow>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -271,8 +271,8 @@ public:
     typedef typename ApiTraits<kApi_BatchGetRow>::PbResponse PbResponse;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;
@@ -299,8 +299,8 @@ public:
     typedef std::map<std::string, Index, util::QuasiLexicographicLess<std::string> > Indices;
 
     explicit Serde(util::MemPool&, util::StrPool&);
-    util::Optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
-    util::Optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
+    std::optional<OTSError> serialize(std::deque<util::MemPiece>&, const ApiRequest&);
+    std::optional<OTSError> deserialize(ApiResponse&, std::deque<util::MemPiece>&);
 
 private:
     MemPoolZeroCopyOutputStream mOStream;

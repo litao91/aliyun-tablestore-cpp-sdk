@@ -21,8 +21,8 @@ SyncClient* initOtsClient()
     ClientOptions opts;
     SyncClient* pclient = NULL;
     {
-        Optional<OTSError> res = SyncClient::create(pclient, ep, cr, opts);
-        assert(!res.present());
+        std::optional<OTSError> res = SyncClient::create(pclient, ep, cr, opts);
+        assert(!res);
     }
     sleep(30); // wait a while for connection ready
     return pclient;
@@ -49,9 +49,9 @@ void createTable(SyncClient& client)
         }
     }
     CreateTableResponse resp;
-    Optional<OTSError> res = client.createTable(resp, req);
+    std::optional<OTSError> res = client.createTable(resp, req);
     cout << "create table \"" << kTableName << "\" ";
-    if (res.present()) {
+    if (res) {
         cout << "error" << endl
              << "  error code: " << res->errorCode() << endl
              << "  message: " << res->message() << endl
@@ -70,9 +70,9 @@ void deleteTable(SyncClient& client)
     DeleteTableRequest req;
     req.mutableTable() = kTableName;
     DeleteTableResponse resp;
-    Optional<OTSError> res = client.deleteTable(resp, req);
+    std::optional<OTSError> res = client.deleteTable(resp, req);
     cout << "delete table \"" << kTableName << "\" ";
-    if (res.present()) {
+    if (res) {
         cout << "error" << endl
              << "  error code: " << res->errorCode() << endl
              << "  message: " << res->message() << endl
@@ -101,9 +101,9 @@ void writeOneRow(SyncClient& client)
         }
     }
     PutRowResponse resp;
-    Optional<OTSError> res = client.putRow(resp, req);
+    std::optional<OTSError> res = client.putRow(resp, req);
     cout << "put row \"" << pp::prettyPrint(req.rowChange().primaryKey()) << "\" ";
-    if (res.present()) {
+    if (res) {
         cout << "error" << endl
              << "  error code: " << res->errorCode() << endl
              << "  message: " << res->message() << endl
@@ -141,9 +141,9 @@ void batchGetRow(SyncClient& client)
         criterion.mutableMaxVersions().reset(1);
     }
     BatchGetRowResponse resp;
-    Optional<OTSError> res = client.batchGetRow(resp, req);
+    std::optional<OTSError> res = client.batchGetRow(resp, req);
     cout << "batch get rows: ";
-    if (res.present()) {
+    if (res) {
         cout << "error" << endl
              << "  error code: " << res->errorCode() << endl
              << "  message: " << res->message() << endl
@@ -158,7 +158,7 @@ void batchGetRow(SyncClient& client)
 }
 
 int main() {
-    auto_ptr<SyncClient> client(initOtsClient());
+    unique_ptr<SyncClient> client(initOtsClient());
     createTable(*client);
     writeOneRow(*client);
     batchGetRow(*client);

@@ -32,14 +32,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/mempiece.hpp"
 #include "tablestore/util/foreach.hpp"
 #include "testa/testa.hpp"
-#include <tr1/functional>
+#include <functional>
 #include <deque>
 #include <string>
 #include <limits>
 #include <stdint.h>
 
 using namespace std;
-using namespace std::tr1;
+
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -271,36 +271,36 @@ void MemPiece_ToInt64_errors(const string&)
 {
     {
         int64_t x;
-        Optional<string> err = MemPiece().to(x);
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<string> err = MemPiece().to(x);
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(*err == "Empty piece of memory.")
             (*err).issue();
     }
     {
         int64_t x;
-        Optional<string> err = MemPiece::from("-").to(x);
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<string> err = MemPiece::from("-").to(x);
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(*err == "A single '-'.")
             (*err).issue();
     }
     {
         int64_t x;
-        Optional<string> err = MemPiece::from("a").to(x);
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<string> err = MemPiece::from("a").to(x);
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(*err == "Nondigital.")
             (*err).issue();
     }
     {
         int64_t x;
-        Optional<string> err = MemPiece::from("9223372036854775808").to(x);
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<string> err = MemPiece::from("9223372036854775808").to(x);
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(*err == "Overflow.")
             (*err).issue();
     }
     {
         int64_t x;
-        Optional<string> err = MemPiece::from("-9223372036854775809").to(x);
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<string> err = MemPiece::from("-9223372036854775809").to(x);
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(*err == "Underflow.")
             (*err).issue();
     }

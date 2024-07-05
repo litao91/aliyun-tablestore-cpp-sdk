@@ -36,9 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "asio.hpp"
 #include "tablestore/util/mempiece.hpp"
 #include "tablestore/util/timestamp.hpp"
-#include "tablestore/util/optional.hpp"
-#include <tr1/functional>
-#include <tr1/memory>
+
+#include <functional>
+#include <memory>
 #include <deque>
 #include <map>
 #include <string>
@@ -58,7 +58,7 @@ public:
         const http::Endpoint&,
         const Headers& fixedHeaders,
         Asio&,
-        const std::deque<std::tr1::shared_ptr<util::Actor> >&);
+        const std::deque<std::shared_ptr<util::Actor> >&);
 
     virtual ~Client() {}
 

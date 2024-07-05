@@ -46,8 +46,8 @@ void HttpEndpoint_ParseUrl(const string&)
 {
     {
         http::Endpoint ep;
-        Optional<string> err = http::Endpoint::parse(ep, "http://ots.aliyun.com");
-        TESTA_ASSERT(!err.present())
+        std::optional<string> err = http::Endpoint::parse(ep, "http://ots.aliyun.com");
+        TESTA_ASSERT(!err)
             (*err).issue();
         TESTA_ASSERT(ep.mProtocol == http::Endpoint::HTTP)
             (ep).issue();
@@ -58,8 +58,8 @@ void HttpEndpoint_ParseUrl(const string&)
     }
     {
         http::Endpoint ep;
-        Optional<string> err = http::Endpoint::parse(ep, "http://ots.aliyun.com/");
-        TESTA_ASSERT(!err.present())
+        std::optional<string> err = http::Endpoint::parse(ep, "http://ots.aliyun.com/");
+        TESTA_ASSERT(!err)
             (*err).issue();
         TESTA_ASSERT(ep.mProtocol == http::Endpoint::HTTP)
             (ep).issue();
@@ -70,8 +70,8 @@ void HttpEndpoint_ParseUrl(const string&)
     }
     {
         http::Endpoint ep;
-        Optional<string> err = http::Endpoint::parse(ep, "http://ots.aliyun.com:8888");
-        TESTA_ASSERT(!err.present())
+        std::optional<string> err = http::Endpoint::parse(ep, "http://ots.aliyun.com:8888");
+        TESTA_ASSERT(!err)
             (*err).issue();
         TESTA_ASSERT(ep.mProtocol == http::Endpoint::HTTP)
             (ep).issue();
@@ -82,8 +82,8 @@ void HttpEndpoint_ParseUrl(const string&)
     }
     {
         http::Endpoint ep;
-        Optional<string> err = http::Endpoint::parse(ep, "http://ots.aliyun.com:8888/");
-        TESTA_ASSERT(!err.present())
+        std::optional<string> err = http::Endpoint::parse(ep, "http://ots.aliyun.com:8888/");
+        TESTA_ASSERT(!err)
             (*err).issue();
         TESTA_ASSERT(ep.mProtocol == http::Endpoint::HTTP)
             (ep).issue();
@@ -94,8 +94,8 @@ void HttpEndpoint_ParseUrl(const string&)
     }
     {
         http::Endpoint ep;
-        Optional<string> err = http::Endpoint::parse(ep, "https://ots.aliyun.com");
-        TESTA_ASSERT(!err.present())
+        std::optional<string> err = http::Endpoint::parse(ep, "https://ots.aliyun.com");
+        TESTA_ASSERT(!err)
             (*err).issue();
         TESTA_ASSERT(ep.mProtocol == http::Endpoint::HTTPS)
             (ep).issue();
@@ -106,8 +106,8 @@ void HttpEndpoint_ParseUrl(const string&)
     }
     {
         http::Endpoint ep;
-        Optional<string> err = http::Endpoint::parse(ep, "http://1.2.3.4");
-        TESTA_ASSERT(!err.present())
+        std::optional<string> err = http::Endpoint::parse(ep, "http://1.2.3.4");
+        TESTA_ASSERT(!err)
             (*err).issue();
         TESTA_ASSERT(ep.mProtocol == http::Endpoint::HTTP)
             (ep).issue();
@@ -118,8 +118,8 @@ void HttpEndpoint_ParseUrl(const string&)
     }
     {
         http::Endpoint ep;
-        Optional<string> err = http::Endpoint::parse(ep, "http://1.2.3.4/");
-        TESTA_ASSERT(!err.present())
+        std::optional<string> err = http::Endpoint::parse(ep, "http://1.2.3.4/");
+        TESTA_ASSERT(!err)
             (*err).issue();
         TESTA_ASSERT(ep.mProtocol == http::Endpoint::HTTP)
             (ep).issue();
@@ -130,8 +130,8 @@ void HttpEndpoint_ParseUrl(const string&)
     }
     {
         http::Endpoint ep;
-        Optional<string> err = http::Endpoint::parse(ep, "http://1.2.3.4:8888");
-        TESTA_ASSERT(!err.present())
+        std::optional<string> err = http::Endpoint::parse(ep, "http://1.2.3.4:8888");
+        TESTA_ASSERT(!err)
             (*err).issue();
         TESTA_ASSERT(ep.mProtocol == http::Endpoint::HTTP)
             (ep).issue();

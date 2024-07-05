@@ -46,8 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/logging.hpp"
 #include "tablestore/util/try.hpp"
 #include <boost/atomic.hpp>
-#include <tr1/functional>
-#include <tr1/memory>
+#include <functional>
+#include <memory>
 #include <memory>
 #include <string>
 
@@ -59,7 +59,7 @@ namespace impl {
 class AsyncClientBase
 {
 public:
-    static util::Optional<OTSError> create(
+    static std::optional<OTSError> create(
         AsyncClientBase*&,
         Endpoint&,
         Credential&,
@@ -73,7 +73,7 @@ public:
     // for testing only
     explicit AsyncClientBase(
         http::Asio*,
-        const std::tr1::function<http::Client*(const http::Headers&)>&,
+        const std::function<http::Client*(const http::Headers&)>&,
         Credential&,
         ClientOptions&);
     ~AsyncClientBase();
@@ -87,22 +87,22 @@ public:
 
         explicit Context(AsyncClientBase& base, const Tracker& tracker);
         virtual ~Context();
-        util::Optional<OTSError> build(
+        std::optional<OTSError> build(
             const ApiRequest&,
-            const std::tr1::function<void(util::Optional<OTSError>&, ApiResponse&)>&);
+            const std::function<void(std::optional<OTSError>&, ApiResponse&)>&);
         void issue();
 
     private:
         void retryAfter(util::Duration);
         void response(
             const Tracker&,
-            util::Optional<OTSError>&,
+            std::optional<OTSError>&,
             http::InplaceHeaders&,
             std::deque<util::MemPiece>&);
         void putHeader(const std::string& key, const std::string& val);
-        bool retry(util::Optional<OTSError>&, const http::InplaceHeaders&);
+        bool retry(std::optional<OTSError>&, const http::InplaceHeaders&);
         bool _response(
-            util::Optional<OTSError>&,
+            std::optional<OTSError>&,
             ApiResponse&,
             http::InplaceHeaders&,
             std::deque<util::MemPiece>&);
@@ -135,42 +135,42 @@ public:
         http::InplaceHeaders mHeaders;
         std::deque<util::MemPiece> mBody;
         util::MonotonicTime mDeadline;
-        std::tr1::function<void(util::Optional<OTSError>&, ApiResponse&)> mCallback;
+        std::function<void(std::optional<OTSError>&, ApiResponse&)> mCallback;
         Serde<kAction> mSerde;
-        std::auto_ptr<RetryStrategy> mRetryStrategy;
+        std::unique_ptr<RetryStrategy> mRetryStrategy;
     };
 
 public:
     util::Logger& mutableLogger();
-    const std::deque<std::tr1::shared_ptr<util::Actor> >& actors() const;
+    const std::deque<std::shared_ptr<util::Actor> >& actors() const;
     const RetryStrategy& retryStrategy() const;
     util::Random& randomGenerator();
 
 private:
     void init(
         const std::string& instance,
-        const std::tr1::function<http::Client*(const http::Headers&)>&);
+        const std::function<http::Client*(const http::Headers&)>&);
     std::string sign(const std::string& path, const http::InplaceHeaders&);
-    util::Optional<OTSError> validateResponse(
+    std::optional<OTSError> validateResponse(
         const Tracker&,
         const http::InplaceHeaders&,
         const std::deque<util::MemPiece>&);
 
 private:
-    std::auto_ptr<util::Random> mRng;
+    std::unique_ptr<util::Random> mRng;
     boost::atomic<bool> mClose;
-    std::auto_ptr<util::Logger> mLogger;
-    std::auto_ptr<util::Logger> mHttpLogger;
+    std::unique_ptr<util::Logger> mLogger;
+    std::unique_ptr<util::Logger> mHttpLogger;
     const Credential mCredential;
-    std::auto_ptr<http::Asio> mAsio;
-    std::auto_ptr<util::MemPool> mMemPool;
-    std::auto_ptr<util::StrPool> mStrPool;
-    std::auto_ptr<http::Client> mHttp;
+    std::unique_ptr<http::Asio> mAsio;
+    std::unique_ptr<util::MemPool> mMemPool;
+    std::unique_ptr<util::StrPool> mStrPool;
+    std::unique_ptr<http::Client> mHttp;
     http::Headers mFixedHeaders;
     util::Duration mRequestTimeout;
     boost::atomic<int64_t> mOngoingRequests;
-    std::auto_ptr<RetryStrategy> mRetryStrategy;
-    std::deque<std::tr1::shared_ptr<util::Actor> > mActors;
+    std::unique_ptr<RetryStrategy> mRetryStrategy;
+    std::deque<std::shared_ptr<util::Actor> > mActors;
 };
 
 template<Action kAction>
@@ -230,13 +230,13 @@ void AsyncClientBase::Context<kAction>::retryAfter(
         kTracker,
         util::MonotonicTime::now() + intv,
         mActor,
-        std::tr1::bind(&AsyncClientBase::Context<kAction>::issue, this));
+        std::bind(&AsyncClientBase::Context<kAction>::issue, this));
 }
 
 template<Action kAction>
-util::Optional<OTSError> AsyncClientBase::Context<kAction>::build(
+std::optional<OTSError> AsyncClientBase::Context<kAction>::build(
     const ApiRequest& req,
-    const std::tr1::function<void(util::Optional<OTSError>&, ApiResponse&)>& cb)
+    const std::function<void(std::optional<OTSError>&, ApiResponse&)>& cb)
 {
     TRY(req.validate());
     OTS_LOG_DEBUG(*mBase.mLogger)
@@ -254,7 +254,7 @@ util::Optional<OTSError> AsyncClientBase::Context<kAction>::build(
     putHeader(kHttpContentLength, pp::prettyPrint(util::totalLength(mBody)));
     putHeader(kOTSSignature, mBase.sign(kPath, mHeaders));
 
-    return util::Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 template<Action kAction>
@@ -275,12 +275,12 @@ void AsyncClientBase::Context<kAction>::issue()
     http::InplaceHeaders headers = mHeaders;
     mBase.mHttp->issue(
         kTracker,
-        std::tr1::bind(&AsyncClientBase::Context<kAction>::response,
+        std::bind(&AsyncClientBase::Context<kAction>::response,
             this,
-            std::tr1::placeholders::_1,
-            std::tr1::placeholders::_2,
-            std::tr1::placeholders::_3,
-            std::tr1::placeholders::_4),
+            std::placeholders::_1,
+            std::placeholders::_2,
+            std::placeholders::_3,
+            std::placeholders::_4),
         mDeadline,
         kPath,
         headers,
@@ -290,7 +290,7 @@ void AsyncClientBase::Context<kAction>::issue()
 template<Action kAction>
 void AsyncClientBase::Context<kAction>::response(
     const Tracker& tracker,
-    util::Optional<OTSError>& err,
+    std::optional<OTSError>& err,
     http::InplaceHeaders& headers,
     std::deque<util::MemPiece>& body)
 {
@@ -305,24 +305,24 @@ void AsyncClientBase::Context<kAction>::response(
 
 template<Action kAction>
 bool AsyncClientBase::Context<kAction>::_response(
-    util::Optional<OTSError>& err,
+    std::optional<OTSError>& err,
     ApiResponse& resp,
     http::InplaceHeaders& headers,
     std::deque<util::MemPiece>& body)
 {
-    if (err.present()) {
+    if (err) {
         if (err->errorCode().empty()) {
-            util::Optional<OTSError> err2 = deserialize(*err, body);
+            std::optional<OTSError> err2 = deserialize(*err, body);
             (void) err2;
         }
         return retry(err, headers);
     }
     err = mBase.validateResponse(kTracker, headers, body);
-    if (err.present()) {
+    if (err) {
         return retry(err, headers);
     }
     err = mSerde.deserialize(resp, body);
-    if (err.present()) {
+    if (err) {
         return retry(err, headers);
     }
     fillRequestId(resp, headers);
@@ -337,10 +337,10 @@ bool AsyncClientBase::Context<kAction>::_response(
 
 template<Action kAction>
 bool AsyncClientBase::Context<kAction>::retry(
-    util::Optional<OTSError>& err,
+    std::optional<OTSError>& err,
     const http::InplaceHeaders& headers)
 {
-    OTS_ASSERT(err.present());
+    OTS_ASSERT(err);
     fillRequestId(*err, headers);
     fillTraceId(*err);
     if (mRetryStrategy->shouldRetry(kAction, *err)) {

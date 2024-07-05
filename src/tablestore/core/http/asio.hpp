@@ -37,11 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/core/types.hpp"
 #include "tablestore/util/mempiece.hpp"
 #include "tablestore/util/timestamp.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/logger.hpp"
 #include "tablestore/util/threading.hpp"
-#include <tr1/functional>
-#include <tr1/memory>
+#include <functional>
+#include <memory>
 #include <deque>
 #include <stdint.h>
 
@@ -57,17 +57,17 @@ public:
      * Triggered when a request is completely written into the underlying
      * socket or an error occurs during writing.
      */
-    typedef std::tr1::function<
+    typedef std::function<
         util::MutableMemPiece(
-            const util::Optional<OTSError>&)
+            const std::optional<OTSError>&)
         > RequestCompletionHandler;
     /**
      * Triggered when a piece of response comes in or an error occurs.
      */
-    typedef std::tr1::function<
+    typedef std::function<
         bool( // true means continue
             int64_t readBytes,
-            const util::Optional<OTSError>&,
+            const std::optional<OTSError>&,
             // nonempty means "continue with a new piece of memory",
             // empty means "go ahead with the remaining part of the last piece of memory".
             util::MutableMemPiece*)
@@ -112,9 +112,9 @@ public:
 class Asio
 {
 public:
-    typedef std::tr1::function<
+    typedef std::function<
         void(Connection&,
-            const util::Optional<OTSError>&)
+            const std::optional<OTSError>&)
         > BorrowConnectionHandler;
 
     static Asio* create(
@@ -123,7 +123,7 @@ public:
         int64_t maxConnections,
         util::Duration mConnectTimeout,
         const Endpoint&,
-        const std::deque<std::tr1::shared_ptr<util::Actor> >&);
+        const std::deque<std::shared_ptr<util::Actor> >&);
 
     /**
      * It is usually dangerous to destroy an unclosed Asio.

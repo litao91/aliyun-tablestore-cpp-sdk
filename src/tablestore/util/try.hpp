@@ -32,12 +32,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TABLESTORE_UTIL_TRY_HPP
 #define TABLESTORE_UTIL_TRY_HPP
 
-#include "tablestore/util/optional.hpp"
+
 
 #define TRY(expr) \
     do {\
         const typeof(expr)& res36280 = (expr); \
-        if (res36280.present()) {\
+        if (res36280) {\
             return res36280; \
         } \
     } while(false) \

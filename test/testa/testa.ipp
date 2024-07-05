@@ -32,9 +32,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/prettyprint.hpp"
 
 #if __cplusplus < 201103L
-#include <tr1/memory>
-#include <tr1/functional>
-#include <tr1/tuple>
+#include <memory>
+#include <functional>
+#include <tuple>
 #else
 #include <memory>
 #include <functional>
@@ -48,8 +48,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace testa {
 
 #if __cplusplus < 201103L
-typedef ::std::map<std::string, std::tr1::function<void()> > CaseMap;
-std::tr1::shared_ptr<CaseMap> getCaseMap();
+typedef ::std::map<std::string, std::function<void()> > CaseMap;
+std::shared_ptr<CaseMap> getCaseMap();
 #else
 typedef ::std::map<std::string, std::function<void()> > CaseMap;
 std::shared_ptr<CaseMap> getCaseMap();
@@ -67,7 +67,7 @@ public:
 
 private:
 #if __cplusplus < 201103L
-    typedef std::tr1::tuple<std::string, std::string> KV;
+    typedef std::tuple<std::string, std::string> KV;
 #else
     typedef std::tuple<std::string, std::string> KV;
 #endif
@@ -91,7 +91,7 @@ public:
     EqCase(
         const std::string& caseName,
 #if __cplusplus < 201103L
-        void (*tb)(const std::string&, std::tr1::function<void(const T&)>),
+        void (*tb)(const std::string&, std::function<void(const T&)>),
 #else
         void (*tb)(const std::string&, std::function<void(const T&)>),
 #endif
@@ -99,7 +99,7 @@ public:
         Res (*oracleFn)(const T&))
     {
 #if __cplusplus < 201103L
-        std::tr1::function<void(T)> cs = std::tr1::bind(
+        std::function<void(T)> cs = std::bind(
 #else
         std::function<void(T)> cs = std::bind(
 #endif
@@ -107,8 +107,8 @@ public:
             trialFn,
             oracleFn,
 #if __cplusplus < 201103L
-            std::tr1::placeholders::_1);
-        (*testa::getCaseMap())[caseName] = std::tr1::bind(tb, caseName, cs);
+            std::placeholders::_1);
+        (*testa::getCaseMap())[caseName] = std::bind(tb, caseName, cs);
 #else
             std::placeholders::_1);
         (*testa::getCaseMap())[caseName] = std::bind(tb, caseName, cs);
@@ -123,7 +123,7 @@ public:
         const T& in)
     {
 #if __cplusplus < 201103L
-        std::tr1::function<void()> cs = std::tr1::bind(
+        std::function<void()> cs = std::bind(
 #else
         std::function<void()> cs = std::bind(
 #endif
@@ -138,8 +138,8 @@ public:
     EqCase(
         const std::string& caseName,
 #if __cplusplus < 201103L
-        Res (*trialFn)(const std::tr1::tuple<T0, T1>&),
-        Res (*oracleFn)(const std::tr1::tuple<T0, T1>&),
+        Res (*trialFn)(const std::tuple<T0, T1>&),
+        Res (*oracleFn)(const std::tuple<T0, T1>&),
 #else
         Res (*trialFn)(const std::tuple<T0, T1>&),
         Res (*oracleFn)(const std::tuple<T0, T1>&),
@@ -148,8 +148,8 @@ public:
         const T1& in1)
     {
 #if __cplusplus < 201103L
-        std::tr1::function<void()> cs = std::tr1::bind(
-            &EqCase::eq<Res, std::tr1::tuple<T0, T1> >,
+        std::function<void()> cs = std::bind(
+            &EqCase::eq<Res, std::tuple<T0, T1> >,
 #else
         std::function<void()> cs = std::bind(
             &EqCase::eq<Res, std::tuple<T0, T1> >,
@@ -157,7 +157,7 @@ public:
             trialFn,
             oracleFn,
 #if __cplusplus < 201103L
-            std::tr1::make_tuple(in0, in1));
+            std::make_tuple(in0, in1));
 #else
             std::make_tuple(in0, in1));
 #endif
@@ -168,8 +168,8 @@ public:
     EqCase(
         const std::string& caseName,
 #if __cplusplus < 201103L
-        Res (*trialFn)(const std::tr1::tuple<T0, T1, T2>&),
-        Res (*oracleFn)(const std::tr1::tuple<T0, T1, T2>&),
+        Res (*trialFn)(const std::tuple<T0, T1, T2>&),
+        Res (*oracleFn)(const std::tuple<T0, T1, T2>&),
 #else
         Res (*trialFn)(const std::tuple<T0, T1, T2>&),
         Res (*oracleFn)(const std::tuple<T0, T1, T2>&),
@@ -179,8 +179,8 @@ public:
         const T2& in2)
     {
 #if __cplusplus < 201103L
-        std::tr1::function<void()> cs = std::tr1::bind(
-            &EqCase::eq<Res, std::tr1::tuple<T0, T1, T2> >,
+        std::function<void()> cs = std::bind(
+            &EqCase::eq<Res, std::tuple<T0, T1, T2> >,
 #else
         std::function<void()> cs = std::bind(
             &EqCase::eq<Res, std::tuple<T0, T1, T2> >,
@@ -188,7 +188,7 @@ public:
             trialFn,
             oracleFn,
 #if __cplusplus < 201103L
-            std::tr1::make_tuple(in0, in1, in2));
+            std::make_tuple(in0, in1, in2));
 #else
             std::make_tuple(in0, in1, in2));
 #endif
@@ -221,7 +221,7 @@ public:
     VerifyCase(
         const std::string& caseName,
 #if __cplusplus < 201103L
-        void (*tb)(const std::string&, std::tr1::function<void(const T&)>),
+        void (*tb)(const std::string&, std::function<void(const T&)>),
 #else
         void (*tb)(const std::string&, std::function<void(const T&)>),
 #endif
@@ -229,7 +229,7 @@ public:
         Res (*trialFn)(const T&))
     {
 #if __cplusplus < 201103L
-        std::tr1::function<void(T)> cs = std::tr1::bind(
+        std::function<void(T)> cs = std::bind(
 #else
         std::function<void(T)> cs = std::bind(
 #endif
@@ -237,8 +237,8 @@ public:
             verifier,
             trialFn,
 #if __cplusplus < 201103L
-            std::tr1::placeholders::_1);
-        (*testa::getCaseMap())[caseName] = std::tr1::bind(tb, caseName, cs);
+            std::placeholders::_1);
+        (*testa::getCaseMap())[caseName] = std::bind(tb, caseName, cs);
 #else
             std::placeholders::_1);
         (*testa::getCaseMap())[caseName] = std::bind(tb, caseName, cs);
@@ -250,7 +250,7 @@ public:
         void (*tbVerifier)(const std::string&))
     {
 #if __cplusplus < 201103L
-        (*testa::getCaseMap())[caseName] = std::tr1::bind(tbVerifier, caseName);
+        (*testa::getCaseMap())[caseName] = std::bind(tbVerifier, caseName);
 #else
         (*testa::getCaseMap())[caseName] = std::bind(tbVerifier, caseName);
 #endif

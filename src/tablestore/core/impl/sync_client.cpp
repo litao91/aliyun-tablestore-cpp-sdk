@@ -36,11 +36,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/try.hpp"
 #include "tablestore/util/threading.hpp"
 #include <boost/ref.hpp>
-#include <tr1/functional>
+#include <functional>
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -53,12 +53,12 @@ namespace {
 template<Action kAction>
 void callback(
     Semaphore& sem,
-    Optional<OTSError>& outErr,
+    std::optional<OTSError>& outErr,
     typename impl::ApiTraits<kAction>::ApiResponse& outResp,
-    Optional<OTSError>& inErr,
+    std::optional<OTSError>& inErr,
     typename impl::ApiTraits<kAction>::ApiResponse& inResp)
 {
-    if (inErr.present()) {
+    if (inErr) {
         moveAssign(outErr, util::move(inErr));
     } else {
         moveAssign(outResp, util::move(inResp));
@@ -68,7 +68,7 @@ void callback(
 
 
 template<Action kAction>
-Optional<OTSError> go(
+std::optional<OTSError> go(
     typename impl::ApiTraits<kAction>::ApiResponse& resp,
     const typename impl::ApiTraits<kAction>::ApiRequest& req,
     impl::AsyncClientBase& ac)
@@ -78,14 +78,14 @@ Optional<OTSError> go(
 
     Tracker tracker(Tracker::create(ac.randomGenerator()));
     Semaphore sem(0);
-    Optional<OTSError> err;
-    function<void(Optional<OTSError>&, Response&)> cb =
+    std::optional<OTSError> err;
+    function<void(std::optional<OTSError>&, Response&)> cb =
         bind(&callback<kAction>,
             boost::ref(sem),
             boost::ref(err),
             boost::ref(resp),
             _1, _2);
-    auto_ptr<Context> ctx(new Context(ac, tracker));
+    unique_ptr<Context> ctx(new Context(ac, tracker));
     TRY(ctx->build(req, cb));
     ctx.release()->issue();
     sem.wait();
@@ -117,76 +117,76 @@ const RetryStrategy& SyncClient::retryStrategy() const
     return mAsyncClient->retryStrategy();
 }
 
-Optional<OTSError> SyncClient::listTable(
+std::optional<OTSError> SyncClient::listTable(
     ListTableResponse& resp, const ListTableRequest& req)
 {
     return go<kApi_ListTable>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::createTable(
+std::optional<OTSError> SyncClient::createTable(
     CreateTableResponse& resp, const CreateTableRequest& req)
 {
     return go<kApi_CreateTable>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::deleteTable(
+std::optional<OTSError> SyncClient::deleteTable(
     DeleteTableResponse& resp, const DeleteTableRequest& req)
 {
     return go<kApi_DeleteTable>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::describeTable(
+std::optional<OTSError> SyncClient::describeTable(
     DescribeTableResponse& resp, const DescribeTableRequest& req)
 {
     return go<kApi_DescribeTable>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::updateTable(
+std::optional<OTSError> SyncClient::updateTable(
     UpdateTableResponse& resp, const UpdateTableRequest& req)
 {
     return go<kApi_UpdateTable>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::computeSplitsBySize(
+std::optional<OTSError> SyncClient::computeSplitsBySize(
     ComputeSplitsBySizeResponse& resp, const ComputeSplitsBySizeRequest& req)
 {
     return go<kApi_ComputeSplitsBySize>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::putRow(PutRowResponse& resp, const PutRowRequest& req)
+std::optional<OTSError> SyncClient::putRow(PutRowResponse& resp, const PutRowRequest& req)
 {
     return go<kApi_PutRow>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::getRow(GetRowResponse& resp, const GetRowRequest& req)
+std::optional<OTSError> SyncClient::getRow(GetRowResponse& resp, const GetRowRequest& req)
 {
     return go<kApi_GetRow>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::getRange(GetRangeResponse& resp, const GetRangeRequest& req)
+std::optional<OTSError> SyncClient::getRange(GetRangeResponse& resp, const GetRangeRequest& req)
 {
     return go<kApi_GetRange>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::updateRow(
+std::optional<OTSError> SyncClient::updateRow(
     UpdateRowResponse& resp, const UpdateRowRequest& req)
 {
     return go<kApi_UpdateRow>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::deleteRow(
+std::optional<OTSError> SyncClient::deleteRow(
     DeleteRowResponse& resp, const DeleteRowRequest& req)
 {
     return go<kApi_DeleteRow>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::batchGetRow(
+std::optional<OTSError> SyncClient::batchGetRow(
     BatchGetRowResponse& resp, const BatchGetRowRequest& req)
 {
     return go<kApi_BatchGetRow>(resp, req, *mAsyncClient);
 }
 
-Optional<OTSError> SyncClient::batchWriteRow(
+std::optional<OTSError> SyncClient::batchWriteRow(
     BatchWriteRowResponse& resp, const BatchWriteRowRequest& req)
 {
     return go<kApi_BatchWriteRow>(resp, req, *mAsyncClient);

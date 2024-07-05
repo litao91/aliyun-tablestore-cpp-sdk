@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
     
 #if __cplusplus < 201103L
-#include <tr1/tuple>
+#include <tuple>
 #include <stdint.h>
 #else
 #include <tuple>
@@ -257,12 +257,12 @@ struct PrettyPrinter<
 template<class T>
 struct _TupleSize
 {
-    static const std::size_t value = std::tr1::tuple_size<T>::value;
+    static const std::size_t value = std::tuple_size<T>::value;
 };
 template<class T, std::size_t n>
-const typename std::tr1::tuple_element<n, T>::type& _getTuple(const T& xs)
+const typename std::tuple_element<n, T>::type& _getTuple(const T& xs)
 {
-    return std::tr1::get<n>(xs);
+    return std::get<n>(xs);
 }
 #else
 template<class T>
@@ -312,12 +312,12 @@ struct __TupleSize
 template<class T>
 struct PrettyPrinter<
     T,
-    typename mp::VoidIf<__TupleSize<std::tr1::tuple_size<T>::value>::value>::Type>
+    typename mp::VoidIf<__TupleSize<std::tuple_size<T>::value>::value>::Type>
 {
     void operator()(std::string& out, const T& xs) const
     {
         out.push_back('(');
-        _TuplePrettyPrint<T, 0, std::tr1::tuple_size<T>::value == 0> p;
+        _TuplePrettyPrint<T, 0, std::tuple_size<T>::value == 0> p;
         p(out, xs);
         out.push_back(')');
     }

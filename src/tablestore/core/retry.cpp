@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 using namespace std;
-using namespace std::tr1;
+
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {

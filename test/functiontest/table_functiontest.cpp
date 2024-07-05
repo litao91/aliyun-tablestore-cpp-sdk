@@ -34,13 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/core/types.hpp"
 #include "tablestore/core/client.hpp"
 #include "tablestore/util/logging.hpp"
-#include <tr1/functional>
-#include <tr1/tuple>
+#include <functional>
+#include <tuple>
 #include <set>
 #include <stdexcept>
 
 using namespace std;
-using namespace std::tr1;
+
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -64,11 +64,11 @@ void Table_tb(
 
     SyncClient* pclient = NULL;
     {
-        Optional<OTSError> res = SyncClient::create(pclient, ep, cr, opts);
-        TESTA_ASSERT(!res.present())
+        std::optional<OTSError> res = SyncClient::create(pclient, ep, cr, opts);
+        TESTA_ASSERT(!res)
             (*res)(ep)(cr)(opts).issue();
     }
-    auto_ptr<SyncClient> client(pclient);
+    unique_ptr<SyncClient> client(pclient);
     try {
         {
             CreateTableRequest req;
@@ -76,8 +76,8 @@ void Table_tb(
             req.mutableMeta().mutableSchema().append() =
                 PrimaryKeyColumnSchema("pkey", kPKT_Integer);
             CreateTableResponse resp;
-            Optional<OTSError> res = client->createTable(resp, req);
-            TESTA_ASSERT(!res.present())
+            std::optional<OTSError> res = client->createTable(resp, req);
+            TESTA_ASSERT(!res)
                 (*res)(req).issue();
         }
         cs(make_tuple(pclient, name));
@@ -85,15 +85,15 @@ void Table_tb(
             DeleteTableRequest req;
             req.mutableTable() = name;
             DeleteTableResponse resp;
-            Optional<OTSError> res = client->deleteTable(resp, req);
-            TESTA_ASSERT(!res.present())
+            std::optional<OTSError> res = client->deleteTable(resp, req);
+            TESTA_ASSERT(!res)
                 (*res)(req).issue();
         }
     } catch(const std::logic_error& ex) {
         DeleteTableRequest req;
         req.mutableTable() = name;
         DeleteTableResponse resp;
-        Optional<OTSError> res = client->deleteTable(resp, req);
+        std::optional<OTSError> res = client->deleteTable(resp, req);
         (void) res;
         throw;
     }
@@ -111,8 +111,8 @@ set<string> ListTable(const tuple<SyncClient*, string>& in)
     SyncClient* client = get<0>(in);
     ListTableRequest req;
     ListTableResponse resp;
-    Optional<OTSError> res = client->listTable(resp, req);
-    TESTA_ASSERT(!res.present())
+    std::optional<OTSError> res = client->listTable(resp, req);
+    TESTA_ASSERT(!res)
         (*res).issue();
     set<string> tables;
     const IVector<string>& xs = resp.tables();
@@ -132,8 +132,8 @@ DescribeTableResponse DescribeTable(const tuple<SyncClient*, string>& in)
     DescribeTableRequest req;
     req.mutableTable() = get<1>(in);
     DescribeTableResponse resp;
-    Optional<OTSError> err = get<0>(in)->describeTable(resp, req);
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = get<0>(in)->describeTable(resp, req);
+    TESTA_ASSERT(!err)
         (*err)(req).issue();
     return resp;
 }
@@ -169,8 +169,8 @@ UpdateTableRequest UpdateTable(const tuple<SyncClient*, string>& in)
     req.mutableTable() = get<1>(in);
     req.mutableOptions().mutableMaxVersions().reset(2);
     UpdateTableResponse resp;
-    Optional<OTSError> err = get<0>(in)->updateTable(resp, req);
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = get<0>(in)->updateTable(resp, req);
+    TESTA_ASSERT(!err)
         (req).issue();
     return req;
 }
@@ -182,10 +182,10 @@ void UpdateTable_verify(
     DescribeTableRequest dreq;
     dreq.mutableTable() = get<1>(in);
     DescribeTableResponse resp;
-    Optional<OTSError> err = get<0>(in)->describeTable(resp, dreq);
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = get<0>(in)->describeTable(resp, dreq);
+    TESTA_ASSERT(!err)
         (*err)(dreq).issue();
-    TESTA_ASSERT(resp.options().maxVersions().present())
+    TESTA_ASSERT(resp.options().maxVersions())
         (req)(resp).issue();
     TESTA_ASSERT(*resp.options().maxVersions() == *req.options().maxVersions())
         (req)(resp).issue();
@@ -206,11 +206,11 @@ void UpdateTable_issue4(const string& name)
     opts.mutableMaxConnections() = 2;
     opts.resetLogger(createLogger("/", Logger::kDebug));
 
-    auto_ptr<SyncClient> client;
+    unique_ptr<SyncClient> client;
     {
         SyncClient* pclient = NULL;
-        Optional<OTSError> res = SyncClient::create(pclient, ep, cr, opts);
-        TESTA_ASSERT(!res.present())
+        std::optional<OTSError> res = SyncClient::create(pclient, ep, cr, opts);
+        TESTA_ASSERT(!res)
             (*res)(ep)(cr)(opts).issue();
         client.reset(pclient);
     }
@@ -223,8 +223,8 @@ void UpdateTable_issue4(const string& name)
                 PrimaryKeyColumnSchema("pkey", kPKT_Integer);
             req.mutableOptions().mutableTimeToLive().reset(ttl);
             CreateTableResponse resp;
-            Optional<OTSError> res = client->createTable(resp, req);
-            TESTA_ASSERT(!res.present())
+            std::optional<OTSError> res = client->createTable(resp, req);
+            TESTA_ASSERT(!res)
                 (*res)(req).issue();
         }
         {
@@ -232,18 +232,18 @@ void UpdateTable_issue4(const string& name)
             req.mutableTable() = name;
             req.mutableOptions().mutableMaxVersions().reset(2);
             UpdateTableResponse resp;
-            Optional<OTSError> err = client->updateTable(resp, req);
-            TESTA_ASSERT(!err.present())
+            std::optional<OTSError> err = client->updateTable(resp, req);
+            TESTA_ASSERT(!err)
                 (req).issue();
         }
         {
             DescribeTableRequest req;
             req.mutableTable() = name;
             DescribeTableResponse resp;
-            Optional<OTSError> err = client->describeTable(resp, req);
-            TESTA_ASSERT(!err.present())
+            std::optional<OTSError> err = client->describeTable(resp, req);
+            TESTA_ASSERT(!err)
                 (*err)(req).issue();
-            TESTA_ASSERT(resp.options().timeToLive().present())
+            TESTA_ASSERT(resp.options().timeToLive())
                 (req)(resp).issue();
             TESTA_ASSERT(*resp.options().timeToLive() == ttl)
                 (req)(resp)(ttl).issue();
@@ -252,15 +252,15 @@ void UpdateTable_issue4(const string& name)
             DeleteTableRequest req;
             req.mutableTable() = name;
             DeleteTableResponse resp;
-            Optional<OTSError> res = client->deleteTable(resp, req);
-            TESTA_ASSERT(!res.present())
+            std::optional<OTSError> res = client->deleteTable(resp, req);
+            TESTA_ASSERT(!res)
                 (*res)(req).issue();
         }
     } catch(const std::logic_error&) {
         DeleteTableRequest req;
         req.mutableTable() = name;
         DeleteTableResponse resp;
-        Optional<OTSError> res = client->deleteTable(resp, req);
+        std::optional<OTSError> res = client->deleteTable(resp, req);
         (void) res;
         throw;
     }

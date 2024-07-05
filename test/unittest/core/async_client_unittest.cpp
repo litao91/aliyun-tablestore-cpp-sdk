@@ -38,20 +38,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/core/error.hpp"
 #include "tablestore/core/retry.hpp"
 #include "tablestore/util/security.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/threading.hpp"
 #include "tablestore/util/assert.hpp"
 #include "tablestore/util/logging.hpp"
 #include "tablestore/util/foreach.hpp"
 #include "testa/testa.hpp"
 #include <boost/ref.hpp>
-#include <tr1/functional>
-#include <tr1/memory>
+#include <functional>
+#include <memory>
 #include <string>
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -252,7 +252,7 @@ public:
         mRawBody(body)
     {
         if (err.httpStatus() < 200 || err.httpStatus() >= 300) {
-            mError.reset(util::move(err));
+            mError.emplace(std::move(err));
         }
         moveAssign(mHeaders, util::move(headers));
         cb = http::ResponseCallback();
@@ -268,7 +268,7 @@ public:
         mTracker(tracker),
         mPbError(pbErr)
     {
-        mError.reset(util::move(err));
+        mError.emplace(std::move(err));
         moveAssign(mHeaders, util::move(headers));
         cb = http::ResponseCallback();
     }
@@ -295,9 +295,9 @@ public:
         }
 
         string out;
-        if (mRawBody.present()) {
+        if (mRawBody) {
             out = *mRawBody;
-        } else if (mError.present()) {
+        } else if (mError) {
             mPbError.SerializeToString(&out);
         } else {
             mResponse.SerializeToString(&out);
@@ -310,11 +310,11 @@ public:
 private:
     http::ResponseCallback mCb;
     Tracker mTracker;
-    Optional<OTSError> mError;
+    std::optional<OTSError> mError;
     com::aliyun::tablestore::protocol::Error mPbError;
     http::Headers mHeaders;
     com::aliyun::tablestore::protocol::ListTableResponse mResponse;
-    Optional<string> mRawBody;
+    std::optional<string> mRawBody;
 };
 
 class ResultCallback
@@ -323,7 +323,7 @@ public:
     explicit ResultCallback(
         Logger& logger,
         Slave& slave,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         ListTableResponse& resp)
       : mLogger(logger),
         mSlave(slave),
@@ -331,9 +331,9 @@ public:
         mResponse(resp)
     {}
 
-    void operator()(Optional<OTSError>& err, ListTableResponse& resp)
+    void operator()(std::optional<OTSError>& err, ListTableResponse& resp)
     {
-        if (err.present()) {
+        if (err) {
             OTS_LOG_DEBUG(mLogger)
                 ("Error", *err);
             moveAssign(mError, util::move(err));
@@ -348,7 +348,7 @@ public:
 private:
     Logger& mLogger;
     Slave& mSlave;
-    Optional<OTSError>& mError;
+    std::optional<OTSError>& mError;
     ListTableResponse& mResponse;
 };
 
@@ -435,7 +435,7 @@ public:
     ClientOptions mOpts;
     Logger* mLogger;
     Actor* mActor;
-    auto_ptr<Random> mRng;
+    unique_ptr<Random> mRng;
 
     MasterSlave mMasterSlave;
     Master& mMaster;
@@ -445,7 +445,7 @@ public:
     Tracker mTracker;
     string mRequestId;
 
-    auto_ptr<impl::AsyncClientBase> mClient;
+    unique_ptr<impl::AsyncClientBase> mClient;
 
     HttpIssueContext mIssueContext;
 };
@@ -508,7 +508,7 @@ void AsyncClient_Oneshot(const string&)
 {
     TestBench tb(new NoRetry());
     tb.resetClient();
-    Optional<OTSError> resultErr;
+    std::optional<OTSError> resultErr;
     ListTableRequest req;
     ListTableResponse resp;
     ResultCallback resultCb(tb.logger(), tb.slave(), resultErr, resp);
@@ -542,7 +542,7 @@ void AsyncClient_Oneshot(const string&)
         string token = tb.master().listen();
         TESTA_ASSERT(token == kResult)
             (token).issue();
-        TESTA_ASSERT(!resultErr.present())
+        TESTA_ASSERT(!resultErr)
             (*resultErr).issue();
         TESTA_ASSERT(pp::prettyPrint(resp.tables()) == "[\"pet\"]")
             (resp).issue();
@@ -562,7 +562,7 @@ void AsyncClient_Oneshot_BackendError(const string&)
 {
     TestBench tb;
     tb.resetClient();
-    Optional<OTSError> resultErr;
+    std::optional<OTSError> resultErr;
     ListTableRequest req;
     ListTableResponse resp;
     ResultCallback resultCb(tb.logger(), tb.slave(), resultErr, resp);
@@ -600,7 +600,7 @@ void AsyncClient_Oneshot_BackendError(const string&)
         string token = tb.master().listen();
         TESTA_ASSERT(token == kResult)
             (token).issue();
-        TESTA_ASSERT(resultErr.present()).issue();
+        TESTA_ASSERT(resultErr).issue();
         TESTA_ASSERT(resultErr->traceId() == tb.tracker().traceId())
             (*resultErr).issue();
         TESTA_ASSERT(resultErr->requestId() == tb.requestId())
@@ -623,7 +623,7 @@ void AsyncClient_Oneshot_NetworkError(const string&)
 {
     TestBench tb(new NoRetry());
     tb.resetClient();
-    Optional<OTSError> resultErr;
+    std::optional<OTSError> resultErr;
     ListTableRequest req;
     ListTableResponse resp;
     ResultCallback resultCb(tb.logger(), tb.slave(), resultErr, resp);
@@ -657,7 +657,7 @@ void AsyncClient_Oneshot_NetworkError(const string&)
         string token = tb.master().listen();
         TESTA_ASSERT(token == kResult)
             (token).issue();
-        TESTA_ASSERT(resultErr.present()).issue();
+        TESTA_ASSERT(resultErr).issue();
         TESTA_ASSERT(resultErr->traceId() == tb.tracker().traceId())
             (*resultErr).issue();
         TESTA_ASSERT(resultErr->requestId() == "")
@@ -680,7 +680,7 @@ void AsyncClient_Retry(const string&)
 {
     TestBench tb;
     tb.resetClient();
-    Optional<OTSError> resultErr;
+    std::optional<OTSError> resultErr;
     ListTableRequest req;
     ListTableResponse resp;
     ResultCallback resultCb(tb.logger(), tb.slave(), resultErr, resp);
@@ -740,7 +740,7 @@ void AsyncClient_Retry(const string&)
         string token = tb.master().listen();
         TESTA_ASSERT(token == kResult)
             (token).issue();
-        TESTA_ASSERT(!resultErr.present())
+        TESTA_ASSERT(!resultErr)
             (*resultErr).issue();
         TESTA_ASSERT(pp::prettyPrint(resp.tables()) == "[\"pet\"]")
             (resp).issue();
@@ -773,7 +773,7 @@ void AsyncClient_ResponseValidation(const string&)
 {
     TestBench tb(new NoRetry());
     tb.resetClient();
-    Optional<OTSError> resultErr;
+    std::optional<OTSError> resultErr;
     ListTableRequest req;
     ListTableResponse resp;
     ResultCallback resultCb(tb.logger(), tb.slave(), resultErr, resp);
@@ -807,7 +807,7 @@ void AsyncClient_ResponseValidation(const string&)
         string token = tb.master().listen();
         TESTA_ASSERT(token == kResult)
             (token).issue();
-        TESTA_ASSERT(resultErr.present()).issue();
+        TESTA_ASSERT(resultErr).issue();
         TESTA_ASSERT(resultErr->traceId() == tb.tracker().traceId())
             (*resultErr).issue();
         TESTA_ASSERT(resultErr->requestId() == "")
@@ -842,7 +842,7 @@ void AsyncClient_Sts(const string&)
     TestBench tb(new NoRetry());
     tb.mutableCredential().mutableSecurityToken() = "ststoken";
     tb.resetClient();
-    Optional<OTSError> resultErr;
+    std::optional<OTSError> resultErr;
     ListTableRequest req;
     ListTableResponse resp;
     ResultCallback resultCb(tb.logger(), tb.slave(), resultErr, resp);
@@ -874,7 +874,7 @@ void AsyncClient_Sts(const string&)
         string token = tb.master().listen();
         TESTA_ASSERT(token == kResult)
             (token).issue();
-        TESTA_ASSERT(!resultErr.present())
+        TESTA_ASSERT(!resultErr)
             (*resultErr).issue();
         TESTA_ASSERT(pp::prettyPrint(resp.tables()) == "[\"pet\"]")
             (resp).issue();

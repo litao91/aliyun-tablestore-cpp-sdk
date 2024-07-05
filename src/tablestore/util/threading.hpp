@@ -37,8 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/prettyprint.hpp"
 #include <boost/noncopyable.hpp>
 #include <boost/atomic.hpp>
-#include <tr1/functional>
-#include <tr1/memory>
+#include <functional>
+#include <memory>
 #include <memory>
 #include <string>
 #include <stdint.h>
@@ -54,7 +54,7 @@ class Thread;
 class Thread: private boost::noncopyable
 {
 public:
-    explicit Thread(const std::tr1::function<void()>&);
+    explicit Thread(const std::function<void()>&);
     explicit Thread();
     explicit Thread(const MoveHolder<Thread>&);
     Thread& operator=(const MoveHolder<Thread>&);
@@ -126,7 +126,7 @@ class Actor
     static const int64_t kMaxBatchSize = 1000;
 
 public:
-    typedef std::tr1::function<void()> Action;
+    typedef std::function<void()> Action;
 
     explicit Actor();
     ~Actor();

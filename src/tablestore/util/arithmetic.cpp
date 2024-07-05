@@ -41,11 +41,11 @@ namespace aliyun {
 namespace tablestore {
 namespace util {
 
-Optional<string> toUint64(uint64_t& out, const MemPiece& in, int64_t radix)
+std::optional<string> toUint64(uint64_t& out, const MemPiece& in, int64_t radix)
 {
     OTS_ASSERT(1 < radix && radix <= 36)(radix);
     if (in.length() == 0) {
-        return Optional<string>(string(
+        return std::optional<string>(string(
                 "Cannot convert a string of 0 length to a number."));
     }
     uint64_t res = 0;
@@ -60,17 +60,17 @@ Optional<string> toUint64(uint64_t& out, const MemPiece& in, int64_t radix)
         } else if ('a' <= *b && *b <= 'a' + radix - 10) {
             x += (*b - 'a') + 10;
         } else {
-            return Optional<string>(string(
+            return std::optional<string>(string(
                     "Unrecognized character in converting a string to a number."));
         }
         if (x < res) {
-            return Optional<string>(string(
+            return std::optional<string>(string(
                     "Overflow in converting a string to a number."));
         }
         res = x;
     }
     out = res;
-    return Optional<string>();
+    return std::optional<string>();
 }
 
 void format(string& out, uint64_t num, int64_t radix)

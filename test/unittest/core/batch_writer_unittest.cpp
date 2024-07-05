@@ -32,21 +32,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common.hpp"
 #include "src/tablestore/core/impl/async_batch_writer.hpp"
 #include "tablestore/core/batch_writer.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/threading.hpp"
 #include "tablestore/util/assert.hpp"
 #include "tablestore/util/logging.hpp"
 #include "tablestore/util/foreach.hpp"
 #include "testa/testa.hpp"
 #include <boost/ref.hpp>
-#include <tr1/functional>
-#include <tr1/memory>
+#include <functional>
+#include <memory>
 #include <string>
 #include <set>
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -59,8 +59,8 @@ SyncBatchWriter* newSyncBatchWriter(
     const BatchWriterConfig& cfg)
 {
     SyncBatchWriter* w = NULL;
-    Optional<OTSError> err = SyncBatchWriter::create(w, client, cfg);
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = SyncBatchWriter::create(w, client, cfg);
+    TESTA_ASSERT(!err)
         (*err).issue();
     return w;
 }
@@ -70,8 +70,8 @@ impl::AsyncBatchWriter* newAsyncBatchWriter(
     const BatchWriterConfig& cfg)
 {
     AsyncBatchWriter* w = NULL;
-    Optional<OTSError> err = AsyncBatchWriter::create(w, client, cfg);
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = AsyncBatchWriter::create(w, client, cfg);
+    TESTA_ASSERT(!err)
         (*err).issue();
     impl::AsyncBatchWriter* res = dynamic_cast<impl::AsyncBatchWriter*>(w);
     TESTA_ASSERT(res != NULL).issue();
@@ -133,7 +133,7 @@ void cloneRowsInRequest(
     const IVector<T>& requests = traits.requests(req);
     for(int64_t i = 0, sz = requests.size(); i < sz; ++i) {
         const T& cause = requests[i];
-        Result<Optional<Row>, OTSError>& result = results.append().mutableGet();
+        Result<std::optional<Row>, OTSError>& result = results.append().mutableGet();
         Row row;
         row.mutablePrimaryKey() = cause.get().primaryKey();
         result.mutableOkValue().reset(row);
@@ -144,7 +144,7 @@ void SyncBatchWriter_Cb(
     Logger& logger,
     BatchWriteRowRequest& req,
     const function<void(
-        BatchWriteRowRequest&, util::Optional<OTSError>&, BatchWriteRowResponse&)>& cb)
+        BatchWriteRowRequest&, std::optional<OTSError>&, BatchWriteRowResponse&)>& cb)
 {
     BatchWriteRowResponse resp;
     cloneRowsInRequest<BatchWriteRowRequest::Put>(resp, req);
@@ -153,7 +153,7 @@ void SyncBatchWriter_Cb(
     OTS_LOG_DEBUG(logger)
         ("Request", req)
         ("Response", resp);
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     cb(req, err, resp);
 }
 
@@ -168,22 +168,22 @@ void fillRequired(Request& req, const string& table, const PrimaryKeyValue& v)
 
 void SyncBatchWriter_PutRow(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockAsyncClient client(*logger);
     client.mutableBatchWriteRow() =
         bind(SyncBatchWriter_Cb, boost::ref(*logger), _1, _2);
     BatchWriterConfig cfg;
-    auto_ptr<SyncBatchWriter> writer(newSyncBatchWriter(client, cfg));
+    unique_ptr<SyncBatchWriter> writer(newSyncBatchWriter(client, cfg));
 
     PutRowRequest req;
     fillRequired(req, "Table", PrimaryKeyValue::toInteger(0));
     PutRowResponse resp;
-    Optional<OTSError> err = writer->putRow(resp, req);
+    std::optional<OTSError> err = writer->putRow(resp, req);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
-    const Optional<Row>& row = resp.row();
-    TESTA_ASSERT(row.present()).issue();
+    const std::optional<Row>& row = resp.row();
+    TESTA_ASSERT(row).issue();
     TESTA_ASSERT(pp::prettyPrint(row->primaryKey()[0].value()) == "0")
         (resp).issue();
 }
@@ -193,22 +193,22 @@ TESTA_DEF_JUNIT_LIKE1(SyncBatchWriter_PutRow);
 namespace {
 void SyncBatchWriter_UpdateRow(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockAsyncClient client(*logger);
     client.mutableBatchWriteRow() =
         bind(SyncBatchWriter_Cb, boost::ref(*logger), _1, _2);
     BatchWriterConfig cfg;
-    auto_ptr<SyncBatchWriter> writer(newSyncBatchWriter(client, cfg));
+    unique_ptr<SyncBatchWriter> writer(newSyncBatchWriter(client, cfg));
 
     UpdateRowRequest req;
     fillRequired(req, "Table", PrimaryKeyValue::toInteger(0));
     UpdateRowResponse resp;
-    Optional<OTSError> err = writer->updateRow(resp, req);
+    std::optional<OTSError> err = writer->updateRow(resp, req);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
-    const Optional<Row>& row = resp.row();
-    TESTA_ASSERT(row.present()).issue();
+    const std::optional<Row>& row = resp.row();
+    TESTA_ASSERT(row).issue();
     TESTA_ASSERT(pp::prettyPrint(row->primaryKey()[0].value()) == "0")
         (resp).issue();
 }
@@ -218,22 +218,22 @@ TESTA_DEF_JUNIT_LIKE1(SyncBatchWriter_UpdateRow);
 namespace {
 void SyncBatchWriter_DeleteRow(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockAsyncClient client(*logger);
     client.mutableBatchWriteRow() =
         bind(SyncBatchWriter_Cb, boost::ref(*logger), _1, _2);
     BatchWriterConfig cfg;
-    auto_ptr<SyncBatchWriter> writer(newSyncBatchWriter(client, cfg));
+    unique_ptr<SyncBatchWriter> writer(newSyncBatchWriter(client, cfg));
 
     DeleteRowRequest req;
     fillRequired(req, "Table", PrimaryKeyValue::toInteger(0));
     DeleteRowResponse resp;
-    Optional<OTSError> err = writer->deleteRow(resp, req);
+    std::optional<OTSError> err = writer->deleteRow(resp, req);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
-    const Optional<Row>& row = resp.row();
-    TESTA_ASSERT(row.present()).issue();
+    const std::optional<Row>& row = resp.row();
+    TESTA_ASSERT(row).issue();
     TESTA_ASSERT(pp::prettyPrint(row->primaryKey()[0].value()) == "0")
         (resp).issue();
 }
@@ -247,13 +247,13 @@ void AsyncBatchWriter_Callback(
     Mutex& mutex,
     deque<PrimaryKeyValue>& receivedRows,
     Request& req,
-    Optional<OTSError>& err,
+    std::optional<OTSError>& err,
     Response& resp)
 {
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
-    const Optional<Row>& row = resp.row();
-    TESTA_ASSERT(row.present()).issue();
+    const std::optional<Row>& row = resp.row();
+    TESTA_ASSERT(row).issue();
     const PrimaryKey& pk = row->primaryKey();
     TESTA_ASSERT(pk.size() == 1)
         (pk.size()).issue();
@@ -268,7 +268,7 @@ void AsyncBatchWriter_Cb(
     boost::atomic<int64_t>& sentReqs,
     BatchWriteRowRequest& req,
     const function<void(
-        BatchWriteRowRequest&, util::Optional<OTSError>&, BatchWriteRowResponse&)>& cb)
+        BatchWriteRowRequest&, std::optional<OTSError>&, BatchWriteRowResponse&)>& cb)
 {
     sentReqs.fetch_add(1, boost::memory_order_acq_rel);
     SyncBatchWriter_Cb(logger, req, cb);
@@ -276,12 +276,12 @@ void AsyncBatchWriter_Cb(
 
 void AsyncBatchWriter_Aggregation(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockAsyncClient client(*logger);
     BatchWriterConfig cfg;
     cfg.mutableRegularNap() = Duration::fromHour(1);
     cfg.mutableMaxNap() = cfg.regularNap() * 2;
-    auto_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
+    unique_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
 
     Mutex mutex;
     boost::atomic<int64_t> sentReqs(0);
@@ -348,12 +348,12 @@ TESTA_DEF_JUNIT_LIKE1(AsyncBatchWriter_Aggregation);
 namespace {
 void AsyncBatchWriter_Aggregation_DuplicatedRows(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockAsyncClient client(*logger);
     BatchWriterConfig cfg;
     cfg.mutableRegularNap() = Duration::fromHour(1);
     cfg.mutableMaxNap() = cfg.regularNap() * 2;
-    auto_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
+    unique_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
 
     Mutex mutex;
     boost::atomic<int64_t> sentReqs(0);
@@ -398,12 +398,12 @@ TESTA_DEF_JUNIT_LIKE1(AsyncBatchWriter_Aggregation_DuplicatedRows);
 namespace {
 void AsyncBatchWriter_Aggregation_AutoIncr(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockAsyncClient client(*logger);
     BatchWriterConfig cfg;
     cfg.mutableRegularNap() = Duration::fromHour(1);
     cfg.mutableMaxNap() = cfg.regularNap() * 2;
-    auto_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
+    unique_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
 
     Mutex mutex;
     boost::atomic<int64_t> sentReqs(0);
@@ -459,7 +459,7 @@ void _AsyncBatchWriter_CbWithDelay(
     boost::atomic<int64_t>& sentReqs,
     BatchWriteRowRequest req,
     const function<void(
-        BatchWriteRowRequest&, util::Optional<OTSError>&, BatchWriteRowResponse&)>& cb)
+        BatchWriteRowRequest&, std::optional<OTSError>&, BatchWriteRowResponse&)>& cb)
 {
     sleepFor(delay);
     AsyncBatchWriter_Cb(logger, sentReqs, req, cb);
@@ -472,7 +472,7 @@ void AsyncBatchWriter_CbWithDelay(
     boost::atomic<int64_t>& sentReqs,
     BatchWriteRowRequest& req,
     const function<void(
-        BatchWriteRowRequest&, util::Optional<OTSError>&, BatchWriteRowResponse&)>& cb)
+        BatchWriteRowRequest&, std::optional<OTSError>&, BatchWriteRowResponse&)>& cb)
 {
     actor.pushBack(bind(_AsyncBatchWriter_CbWithDelay,
             delay,
@@ -484,12 +484,12 @@ void AsyncBatchWriter_CbWithDelay(
 
 void AsyncBatchWriter_Dtor(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockAsyncClient client(*logger);
     BatchWriterConfig cfg;
     cfg.mutableRegularNap() = Duration::fromHour(1);
     cfg.mutableMaxNap() = cfg.regularNap() * 2;
-    auto_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
+    unique_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
 
     Mutex mutex;
     boost::atomic<int64_t> sentReqs(0);
@@ -529,14 +529,14 @@ TESTA_DEF_JUNIT_LIKE1(AsyncBatchWriter_Dtor);
 namespace {
 void AsyncBatchWriter_NextNapAndConcurrency(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockAsyncClient client(*logger);
     BatchWriterConfig cfg;
     cfg.mutableRegularNap() = Duration::fromMsec(10);
     cfg.mutableMaxNap() = Duration::fromMsec(30);
     cfg.mutableNapShrinkStep() = Duration::fromMsec(3);
     cfg.mutableMaxConcurrency() = 3;
-    auto_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
+    unique_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
 
     {
         // regular period
@@ -626,10 +626,10 @@ void AsyncBatchWriter_CbWithRetry(
     boost::atomic<int64_t>& sentReqs,
     BatchWriteRowRequest& req,
     const function<void(
-        BatchWriteRowRequest&, util::Optional<OTSError>&, BatchWriteRowResponse&)>& cb)
+        BatchWriteRowRequest&, std::optional<OTSError>&, BatchWriteRowResponse&)>& cb)
 {
     if (flip) {
-        Optional<OTSError> err(OTSError(OTSError::kPredefined_OTSServerBusy));
+        std::optional<OTSError> err(OTSError(OTSError::kPredefined_OTSServerBusy));
         BatchWriteRowResponse resp;
         cb(req, err, resp);
         sentReqs.fetch_add(1, boost::memory_order_acq_rel);
@@ -641,10 +641,10 @@ void AsyncBatchWriter_CbWithRetry(
 
 void AsyncBatchWriter_Retry(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockAsyncClient client(*logger);
     BatchWriterConfig cfg;
-    auto_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
+    unique_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
 
     bool flip = true;
     Mutex mutex;
@@ -692,7 +692,7 @@ void errorEveryRow(
     IVector<BatchWriteRowResponse::Result>& results = traits.results(resp);
     const IVector<T>& requests = traits.requests(req);
     for(int64_t i = 0, sz = requests.size(); i < sz; ++i) {
-        Result<Optional<Row>, OTSError>& result = results.append().mutableGet();
+        Result<std::optional<Row>, OTSError>& result = results.append().mutableGet();
         OTSError err(OTSError::kPredefined_OTSServerBusy);
         result.mutableErrValue() = err;
     }
@@ -704,10 +704,10 @@ void AsyncBatchWriter_CbWithRetrySingleRow(
     boost::atomic<int64_t>& sentReqs,
     BatchWriteRowRequest& req,
     const function<void(
-        BatchWriteRowRequest&, util::Optional<OTSError>&, BatchWriteRowResponse&)>& cb)
+        BatchWriteRowRequest&, std::optional<OTSError>&, BatchWriteRowResponse&)>& cb)
 {
     if (flip) {
-        Optional<OTSError> err;
+        std::optional<OTSError> err;
         BatchWriteRowResponse resp;
         errorEveryRow<BatchWriteRowRequest::Put>(resp, req);
         errorEveryRow<BatchWriteRowRequest::Update>(resp, req);
@@ -722,10 +722,10 @@ void AsyncBatchWriter_CbWithRetrySingleRow(
 
 void AsyncBatchWriter_RetrySingleRow(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockAsyncClient client(*logger);
     BatchWriterConfig cfg;
-    auto_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
+    unique_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
 
     bool flip = true;
     Mutex mutex;
@@ -768,12 +768,12 @@ void CallbackForErroneousReq(
     Logger& logger,
     Semaphore& sem,
     Mutex& mutex,
-    Optional<OTSError>& out,
+    std::optional<OTSError>& out,
     PutRowRequest& req,
-    Optional<OTSError>& err,
+    std::optional<OTSError>& err,
     PutRowResponse&)
 {
-    if (err.present()) {
+    if (err) {
         OTS_LOG_DEBUG(logger)
             ("Error", *err)
             .what("Expected error");
@@ -788,13 +788,13 @@ void CallbackForErroneousReq(
 
 void AsyncBatchWriter_ErroneousReq(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockAsyncClient client(*logger);
     BatchWriterConfig cfg;
-    auto_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
+    unique_ptr<impl::AsyncBatchWriter> writer(newAsyncBatchWriter(client, cfg));
 
     PutRowRequest req; // erroneous request
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     Semaphore sem(0);
     Mutex mutex;
     {
@@ -809,7 +809,7 @@ void AsyncBatchWriter_ErroneousReq(const string&)
                 _1, _2, _3));
     }
     sem.wait();
-    TESTA_ASSERT(err.present()).issue();
+    TESTA_ASSERT(err).issue();
 }
 } // namespace
 TESTA_DEF_JUNIT_LIKE1(AsyncBatchWriter_ErroneousReq);

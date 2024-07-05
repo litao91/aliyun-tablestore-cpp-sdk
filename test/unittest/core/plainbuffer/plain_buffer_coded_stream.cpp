@@ -606,7 +606,7 @@ void PlainBufferCodedOutputStream::WriteColumn(
     WriteTag(TAG_CELL);
     WriteCellName(column.name(), &cellChecksum);
     WriteColumnValue(column.value(), &cellChecksum);
-    if (column.timestamp().present()) {
+    if (column.timestamp()) {
         WriteTag(TAG_CELL_TIMESTAMP);
         mOutputStream->WriteRawLittleEndian64(column.timestamp()->toMsec());
         cellChecksum = PlainBufferCrc8::CrcInt64(cellChecksum,
@@ -624,7 +624,7 @@ void PlainBufferCodedOutputStream::WriteColumn(
     int8_t cellChecksum = 0;
     WriteTag(TAG_CELL);
     WriteCellName(update.attrName(), &cellChecksum);
-    if (update.attrValue().present()) {
+    if (update.attrValue()) {
         WriteColumnValue(*update.attrValue(), &cellChecksum);
     }
 
@@ -641,13 +641,13 @@ void PlainBufferCodedOutputStream::WriteColumn(
         break;
     }
 
-    if (update.timestamp().present()) {
+    if (update.timestamp()) {
         WriteTag(TAG_CELL_TIMESTAMP);
         mOutputStream->WriteRawLittleEndian64(update.timestamp()->toMsec());
     }
 
     // the order of fields is different with the order of crc
-    if (update.timestamp().present()) {
+    if (update.timestamp()) {
         cellChecksum = PlainBufferCrc8::CrcInt64(
             cellChecksum, update.timestamp()->toMsec());
     }

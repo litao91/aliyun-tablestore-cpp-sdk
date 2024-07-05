@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/core/types.hpp"
 #include "tablestore/core/error.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/logger.hpp"
 #include <string>
 
@@ -58,7 +58,7 @@ public:
      * the client; otherwise, the error will be returned and
      * @p result keep untouched.
      */
-    static util::Optional<OTSError> create(
+    static std::optional<OTSError> create(
         SyncClient*& result,
         Endpoint&, Credential&, ClientOptions&);
 
@@ -71,7 +71,7 @@ public:
     // configurations
 
     virtual util::Logger& mutableLogger() =0;
-    virtual const std::deque<std::tr1::shared_ptr<util::Actor> >& actors() const =0;
+    virtual const std::deque<std::shared_ptr<util::Actor> >& actors() const =0;
     virtual const RetryStrategy& retryStrategy() const =0;
 
     // table operations
@@ -79,31 +79,31 @@ public:
     /**
      * Creates a table.
      */
-    virtual util::Optional<OTSError> createTable(
+    virtual std::optional<OTSError> createTable(
         CreateTableResponse&, const CreateTableRequest&) =0;
 
     /**
      * Deletes a table.
      */
-    virtual util::Optional<OTSError> deleteTable(
+    virtual std::optional<OTSError> deleteTable(
         DeleteTableResponse&, const DeleteTableRequest&) =0;
 
     /**
      * Lists all tables under this instance.
      */
-    virtual util::Optional<OTSError> listTable(
+    virtual std::optional<OTSError> listTable(
         ListTableResponse&, const ListTableRequest&) =0;
 
     /**
      * Fetches meta of a table.
      */
-    virtual util::Optional<OTSError> describeTable(
+    virtual std::optional<OTSError> describeTable(
         DescribeTableResponse&, const DescribeTableRequest&) =0;
 
     /**
      * Updates mutable fields of meta of a table.
      */
-    virtual util::Optional<OTSError> updateTable(
+    virtual std::optional<OTSError> updateTable(
         UpdateTableResponse&, const UpdateTableRequest&) =0;
 
     // point write
@@ -113,19 +113,19 @@ public:
      * When the row already exists, it will be overwritten if the row condition
      * in the request is ignore or expect-exist.
      */
-    virtual util::Optional<OTSError> putRow(PutRowResponse&, const PutRowRequest&) =0;
+    virtual std::optional<OTSError> putRow(PutRowResponse&, const PutRowRequest&) =0;
 
     /**
      * Updates a row.
      * It can be used either to modify an existent row or to insert a new row.
      */
-    virtual util::Optional<OTSError> updateRow(
+    virtual std::optional<OTSError> updateRow(
         UpdateRowResponse&, const UpdateRowRequest&) =0;
 
     /**
      * Deletes a row.
      */
-    virtual util::Optional<OTSError> deleteRow(
+    virtual std::optional<OTSError> deleteRow(
         DeleteRowResponse&, const DeleteRowRequest&) =0;
 
     /**
@@ -135,7 +135,7 @@ public:
      * If there are row-level errors, put them into their respective
      * results of rows.
      */
-    virtual util::Optional<OTSError> batchWriteRow(
+    virtual std::optional<OTSError> batchWriteRow(
         BatchWriteRowResponse&, const BatchWriteRowRequest&) =0;
 
     // // point query
@@ -145,7 +145,7 @@ public:
      * When the row inexists, it will respond a response with absent row field,
      * rather than an error.
      */
-    virtual util::Optional<OTSError> getRow(GetRowResponse&, const GetRowRequest&) =0;
+    virtual std::optional<OTSError> getRow(GetRowResponse&, const GetRowRequest&) =0;
 
     /**
      * Gets a batch of rows.
@@ -154,7 +154,7 @@ public:
      * If there are row-level errors, put them into their respective
      * results of rows.
      */
-    virtual util::Optional<OTSError> batchGetRow(
+    virtual std::optional<OTSError> batchGetRow(
         BatchGetRowResponse&, const BatchGetRowRequest&) =0;
 
     // range query
@@ -167,7 +167,7 @@ public:
      * Strongly recommend use RangeIterator instead to correctly
      * handle this premature nature.
      */
-    virtual util::Optional<OTSError> getRange(
+    virtual std::optional<OTSError> getRange(
         GetRangeResponse&, const GetRangeRequest&) =0;
 
     // Miscellaneous operations
@@ -180,7 +180,7 @@ public:
      * - Content of the request will probably be changed.
      * - It is generally unwise to do blocking things in callback.
      */
-    virtual util::Optional<OTSError> computeSplitsBySize(
+    virtual std::optional<OTSError> computeSplitsBySize(
         ComputeSplitsBySizeResponse&, const ComputeSplitsBySizeRequest&) =0;
 };
 
@@ -199,7 +199,7 @@ public:
      * the client, which must be owned by the caller;
      * otherwise, the error will be returned and @p result keep untouched.
      */
-    static util::Optional<OTSError> create(
+    static std::optional<OTSError> create(
         AsyncClient*& result,
         Endpoint&, Credential&, ClientOptions&);
 
@@ -212,7 +212,7 @@ public:
     // configurations
 
     virtual util::Logger& mutableLogger() =0;
-    virtual const std::deque<std::tr1::shared_ptr<util::Actor> >& actors() const =0;
+    virtual const std::deque<std::shared_ptr<util::Actor> >& actors() const =0;
     virtual const RetryStrategy& retryStrategy() const =0;
 
     // table operations
@@ -225,8 +225,8 @@ public:
      */
     virtual void createTable(
         CreateTableRequest&,
-        const std::tr1::function<void(
-            CreateTableRequest&, util::Optional<OTSError>&, CreateTableResponse&)>&) =0;
+        const std::function<void(
+            CreateTableRequest&, std::optional<OTSError>&, CreateTableResponse&)>&) =0;
 
     /**
      * Deletes a table.
@@ -236,8 +236,8 @@ public:
      */
     virtual void deleteTable(
         DeleteTableRequest&,
-        const std::tr1::function<void(
-            DeleteTableRequest&, util::Optional<OTSError>&, DeleteTableResponse&)>&) =0;
+        const std::function<void(
+            DeleteTableRequest&, std::optional<OTSError>&, DeleteTableResponse&)>&) =0;
 
     /**
      * Lists all tables under this instance.
@@ -247,8 +247,8 @@ public:
      */
     virtual void listTable(
         ListTableRequest&,
-        const std::tr1::function<void(
-            ListTableRequest&, util::Optional<OTSError>&, ListTableResponse&)>&) =0;
+        const std::function<void(
+            ListTableRequest&, std::optional<OTSError>&, ListTableResponse&)>&) =0;
 
     /**
      * Fetches meta of a table.
@@ -258,8 +258,8 @@ public:
      */
     virtual void describeTable(
         DescribeTableRequest&,
-        const std::tr1::function<void(
-            DescribeTableRequest&, util::Optional<OTSError>&, DescribeTableResponse&)>&) =0;
+        const std::function<void(
+            DescribeTableRequest&, std::optional<OTSError>&, DescribeTableResponse&)>&) =0;
 
     /**
      * Updates mutable fields of meta of a table.
@@ -269,8 +269,8 @@ public:
      */
     virtual void updateTable(
         UpdateTableRequest&,
-        const std::tr1::function<void(
-            UpdateTableRequest&, util::Optional<OTSError>&, UpdateTableResponse&)>&) =0;
+        const std::function<void(
+            UpdateTableRequest&, std::optional<OTSError>&, UpdateTableResponse&)>&) =0;
 
     // point write
 
@@ -284,8 +284,8 @@ public:
      */
     virtual void putRow(
         PutRowRequest&,
-        const std::tr1::function<void(
-            PutRowRequest&, util::Optional<OTSError>&, PutRowResponse&)>&) =0;
+        const std::function<void(
+            PutRowRequest&, std::optional<OTSError>&, PutRowResponse&)>&) =0;
 
     /**
      * Updates a row.
@@ -297,8 +297,8 @@ public:
      */
     virtual void updateRow(
         UpdateRowRequest&,
-        const std::tr1::function<void(
-            UpdateRowRequest&, util::Optional<OTSError>&, UpdateRowResponse&)>&) =0;
+        const std::function<void(
+            UpdateRowRequest&, std::optional<OTSError>&, UpdateRowResponse&)>&) =0;
 
     /**
      * Deletes a row.
@@ -309,8 +309,8 @@ public:
      */
     virtual void deleteRow(
         DeleteRowRequest&,
-        const std::tr1::function<void(
-            DeleteRowRequest&, util::Optional<OTSError>&, DeleteRowResponse&)>&) =0;
+        const std::function<void(
+            DeleteRowRequest&, std::optional<OTSError>&, DeleteRowResponse&)>&) =0;
 
     /**
      * Writes a batch of rows.
@@ -324,8 +324,8 @@ public:
      */
     virtual void batchWriteRow(
         BatchWriteRowRequest&,
-        const std::tr1::function<void(
-            BatchWriteRowRequest&, util::Optional<OTSError>&, BatchWriteRowResponse&)>&) =0;
+        const std::function<void(
+            BatchWriteRowRequest&, std::optional<OTSError>&, BatchWriteRowResponse&)>&) =0;
 
     // point query
 
@@ -340,8 +340,8 @@ public:
      */
     virtual void getRow(
         GetRowRequest&,
-        const std::tr1::function<void(
-            GetRowRequest&, util::Optional<OTSError>&, GetRowResponse&)>&) =0;
+        const std::function<void(
+            GetRowRequest&, std::optional<OTSError>&, GetRowResponse&)>&) =0;
 
     /**
      * Gets a batch of rows.
@@ -357,8 +357,8 @@ public:
      */
     virtual void batchGetRow(
         BatchGetRowRequest&,
-        const std::tr1::function<void(
-            BatchGetRowRequest&, util::Optional<OTSError>&, BatchGetRowResponse&)>&) =0;
+        const std::function<void(
+            BatchGetRowRequest&, std::optional<OTSError>&, BatchGetRowResponse&)>&) =0;
 
     // range query
 
@@ -376,8 +376,8 @@ public:
      */
     virtual void getRange(
         GetRangeRequest&,
-        const std::tr1::function<void(
-            GetRangeRequest&, util::Optional<OTSError>&, GetRangeResponse&)>&) =0;
+        const std::function<void(
+            GetRangeRequest&, std::optional<OTSError>&, GetRangeResponse&)>&) =0;
 
     // Miscellaneous operations
 
@@ -391,8 +391,8 @@ public:
      */
     virtual void computeSplitsBySize(
         ComputeSplitsBySizeRequest&,
-        const std::tr1::function<void(
-            ComputeSplitsBySizeRequest&, util::Optional<OTSError>&, ComputeSplitsBySizeResponse&)>&) =0;
+        const std::function<void(
+            ComputeSplitsBySizeRequest&, std::optional<OTSError>&, ComputeSplitsBySizeResponse&)>&) =0;
 };
 
 } // namespace core

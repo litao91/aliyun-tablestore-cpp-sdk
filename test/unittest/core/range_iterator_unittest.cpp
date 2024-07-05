@@ -31,35 +31,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "common.hpp"
 #include "tablestore/core/range_iterator.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/assert.hpp"
 #include "tablestore/util/logging.hpp"
 #include "tablestore/util/move.hpp"
 #include "testa/testa.hpp"
 #include <boost/ref.hpp>
-#include <tr1/functional>
-#include <tr1/memory>
+#include <functional>
+#include <memory>
 #include <string>
 #include <deque>
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
 namespace tablestore {
 namespace core {
 
-typedef function<Optional<OTSError>(GetRangeResponse&, const GetRangeRequest&)> Api;
+typedef function<std::optional<OTSError>(GetRangeResponse&, const GetRangeRequest&)> Api;
 
 namespace {
 
-Optional<OTSError> collect(deque<Row>& rows, RangeIterator& iter)
+std::optional<OTSError> collect(deque<Row>& rows, RangeIterator& iter)
 {
     for(;;) {
-        Optional<OTSError> err = iter.moveNext();
-        if (err.present()) {
+        std::optional<OTSError> err = iter.moveNext();
+        if (err) {
             return err;
         }
         if (!iter.valid()) {
@@ -69,24 +69,24 @@ Optional<OTSError> collect(deque<Row>& rows, RangeIterator& iter)
         rows.push_back(Row());
         moveAssign(rows.back(), util::move(r));
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> getRange_empty(
+std::optional<OTSError> getRange_empty(
     Logger& logger,
     GetRangeResponse& resp,
     const GetRangeRequest& req)
 {
     GetRangeResponse emptyResp;
     moveAssign(resp, util::move(emptyResp));
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 } // namespace
 
 void RangeIterator_empty(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockSyncClient client(*logger);
     client.mutableGetRange() =
         bind(getRange_empty,
@@ -100,9 +100,9 @@ void RangeIterator_empty(const string&)
 
     RangeIterator rit(client, criterion);
     deque<Row> rows;
-    Optional<OTSError> err = collect(rows, rit);
+    std::optional<OTSError> err = collect(rows, rit);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err)
         .issue();
     TESTA_ASSERT(pp::prettyPrint(rows) == "[]")
@@ -113,7 +113,7 @@ TESTA_DEF_JUNIT_LIKE1(RangeIterator_empty);
 
 namespace {
 
-Optional<OTSError> getRange_one(
+std::optional<OTSError> getRange_one(
     Logger& logger,
     GetRangeResponse& resp,
     const GetRangeRequest& req)
@@ -124,14 +124,14 @@ Optional<OTSError> getRange_one(
             PrimaryKeyColumn("pk", PrimaryKeyValue::toInteger(0));
     }
     resp.mutableConsumedCapacity().mutableRead().reset(12);
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 } // namespace
 
 void RangeIterator_one(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockSyncClient client(*logger);
     client.mutableGetRange() =
         bind(getRange_one,
@@ -145,27 +145,27 @@ void RangeIterator_one(const string&)
 
     RangeIterator rit(client, criterion);
     deque<Row> rows;
-    Optional<OTSError> err = collect(rows, rit);
+    std::optional<OTSError> err = collect(rows, rit);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err)
         .issue();
     TESTA_ASSERT(pp::prettyPrint(rows) == "[{\"PrimaryKey\":{\"pk\":0},\"Attributes\":[]}]")
         (rows)
         .issue();
     CapacityUnit cu = rit.consumedCapacity();
-    TESTA_ASSERT(cu.read().present())
+    TESTA_ASSERT(cu.read())
         .issue();
     TESTA_ASSERT(*cu.read() == 12)
         .issue();
-    TESTA_ASSERT(!cu.write().present())
+    TESTA_ASSERT(!cu.write())
         .issue();
 }
 TESTA_DEF_JUNIT_LIKE1(RangeIterator_one);
 
 namespace {
 
-Optional<OTSError> getRange_continuation_1(
+std::optional<OTSError> getRange_continuation_1(
     Logger& logger,
     GetRangeResponse& resp,
     const GetRangeRequest& req)
@@ -177,17 +177,17 @@ Optional<OTSError> getRange_continuation_1(
             PrimaryKeyColumn("pk", PrimaryKeyValue::toInteger(1));
     }
     resp.mutableConsumedCapacity().mutableRead().reset(2);
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> getRange_continuation_0(
+std::optional<OTSError> getRange_continuation_0(
     Logger& logger,
     Api& api,
     GetRangeResponse& resp,
     const GetRangeRequest& req)
 {
     OTS_LOG_DEBUG(logger);
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     {
         Row& r = resp.mutableRows().append();
         r.mutablePrimaryKey().append() =
@@ -196,20 +196,20 @@ Optional<OTSError> getRange_continuation_0(
     {
         PrimaryKey nextPk;
         nextPk.append() = PrimaryKeyColumn("pk", PrimaryKeyValue::toInteger(1));
-        resp.mutableNextStart().reset(util::move(nextPk));
+        resp.mutableNextStart().emplace(std::move(nextPk));
     }
     resp.mutableConsumedCapacity().mutableRead().reset(1);
     api = bind(getRange_continuation_1,
         boost::ref(logger),
         _1, _2);
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 } // namespace
 
 void RangeIterator_continuation(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockSyncClient client(*logger);
     Api& api = client.mutableGetRange();
     api = bind(getRange_continuation_0,
@@ -224,9 +224,9 @@ void RangeIterator_continuation(const string&)
 
     RangeIterator rit(client, criterion);
     deque<Row> rows;
-    Optional<OTSError> err = collect(rows, rit);
+    std::optional<OTSError> err = collect(rows, rit);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err)
         .issue();
     TESTA_ASSERT(pp::prettyPrint(rows) == "["
@@ -236,25 +236,25 @@ void RangeIterator_continuation(const string&)
         (rows)
         .issue();
     CapacityUnit cu = rit.consumedCapacity();
-    TESTA_ASSERT(cu.read().present())
+    TESTA_ASSERT(cu.read())
         .issue();
     TESTA_ASSERT(*cu.read() == 3)
         .issue();
-    TESTA_ASSERT(!cu.write().present())
+    TESTA_ASSERT(!cu.write())
         .issue();
 }
 TESTA_DEF_JUNIT_LIKE1(RangeIterator_continuation);
 
 namespace {
 
-Optional<OTSError> getRange_limit_1(
+std::optional<OTSError> getRange_limit_1(
     Logger& logger,
     GetRangeResponse& resp,
     const GetRangeRequest& req)
 {
     OTS_LOG_DEBUG(logger);
-    Optional<OTSError> err;
-    OTS_ASSERT(req.queryCriterion().limit().present());
+    std::optional<OTSError> err;
+    OTS_ASSERT(req.queryCriterion().limit());
     OTS_LOG_DEBUG(logger)
         ("Limit", *(req.queryCriterion().limit()));
     for(int64_t i = 0, sz = *(req.queryCriterion().limit()); i < sz; ++i) {
@@ -268,19 +268,19 @@ Optional<OTSError> getRange_limit_1(
             PrimaryKeyColumn(
                 "pk",
                 PrimaryKeyValue::toInteger(*(req.queryCriterion().limit()) + 1));
-        resp.mutableNextStart().reset(util::move(nextPk));
+        resp.mutableNextStart().emplace(std::move(nextPk));
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> getRange_limit_0(
+std::optional<OTSError> getRange_limit_0(
     Logger& logger,
     Api& api,
     GetRangeResponse& resp,
     const GetRangeRequest& req)
 {
     OTS_LOG_DEBUG(logger);
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     {
         Row& r = resp.mutableRows().append();
         r.mutablePrimaryKey().append() =
@@ -289,19 +289,19 @@ Optional<OTSError> getRange_limit_0(
     {
         PrimaryKey nextPk;
         nextPk.append() = PrimaryKeyColumn("pk", PrimaryKeyValue::toInteger(1));
-        resp.mutableNextStart().reset(util::move(nextPk));
+        resp.mutableNextStart().emplace(std::move(nextPk));
     }
     api = bind(getRange_limit_1,
         boost::ref(logger),
         _1, _2);
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 } // namespace
 
 void RangeIterator_limit(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     MockSyncClient client(*logger);
     Api& api = client.mutableGetRange();
     api = bind(getRange_limit_0,
@@ -317,9 +317,9 @@ void RangeIterator_limit(const string&)
 
     RangeIterator rit(client, criterion);
     deque<Row> rows;
-    Optional<OTSError> err = collect(rows, rit);
+    std::optional<OTSError> err = collect(rows, rit);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err)
         .issue();
     TESTA_ASSERT(pp::prettyPrint(rows) == "["
@@ -328,8 +328,8 @@ void RangeIterator_limit(const string&)
         "]")
         (rows)
         .issue();
-    Optional<PrimaryKey> nextPk = rit.nextStart();
-    TESTA_ASSERT(nextPk.present())
+    std::optional<PrimaryKey> nextPk = rit.nextStart();
+    TESTA_ASSERT(nextPk)
         .issue();
     TESTA_ASSERT(pp::prettyPrint(*nextPk) == "{\"pk\":2}")
         (*nextPk)

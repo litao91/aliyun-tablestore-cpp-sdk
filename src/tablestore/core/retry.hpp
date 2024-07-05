@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/core/error.hpp"
 #include "tablestore/util/timestamp.hpp"
 #include "tablestore/util/random.hpp"
-#include <tr1/memory>
+#include <memory>
 #include <string>
 #include <stdint.h>
 
@@ -48,7 +48,7 @@ class DeadlineRetryStrategy: public RetryStrategy
 {
 public:
     explicit DeadlineRetryStrategy(
-        const std::tr1::shared_ptr<util::Random>&,
+        const std::shared_ptr<util::Random>&,
         util::Duration timeout);
 
     DeadlineRetryStrategy* clone() const;
@@ -59,7 +59,7 @@ public:
 private:
     static const util::Duration kMaxPauseBase;
 
-    std::tr1::shared_ptr<util::Random> mRandom;
+    std::shared_ptr<util::Random> mRandom;
     util::Duration mTimeout;
 
     // reset for cloned ones
@@ -72,7 +72,7 @@ class CountingRetryStrategy: public RetryStrategy
 {
 public:
     explicit CountingRetryStrategy(
-        const std::tr1::shared_ptr<util::Random>&,
+        const std::shared_ptr<util::Random>&,
         int64_t n,
         util::Duration interval);
 
@@ -82,7 +82,7 @@ public:
     util::Duration nextPause();
 
 private:
-    std::tr1::shared_ptr<util::Random> mRandom;
+    std::shared_ptr<util::Random> mRandom;
     util::Duration mInterval;
     const int64_t mMaxRetries;
 

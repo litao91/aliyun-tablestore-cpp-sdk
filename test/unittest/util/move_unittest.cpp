@@ -31,13 +31,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/util/move.hpp"
 #include "testa/testa.hpp"
-#include <tr1/memory>
+#include <memory>
 #include <memory>
 #include <deque>
 #include <string>
 
 using namespace std;
-using namespace std::tr1;
+
 
 namespace aliyun {
 namespace tablestore {
@@ -139,8 +139,8 @@ TESTA_DEF_JUNIT_LIKE1(Move_deque);
 void Move_autoptr(const string&)
 {
     string log;
-    auto_ptr<A> a(new A("a", &log));
-    auto_ptr<A> b(new A("b", &log));
+    unique_ptr<A> a(new A("a", &log));
+    unique_ptr<A> b(new A("b", &log));
     util::moveAssign(a, util::move(b));
     TESTA_ASSERT(log == "ctor:a,ctor:b,dtor:a,")
         (log).issue();

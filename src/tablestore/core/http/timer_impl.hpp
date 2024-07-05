@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/seq_gen.hpp"
 #include <boost/asio.hpp>
 #include <boost/atomic.hpp>
-#include <tr1/memory>
+#include <memory>
 #include <deque>
 #include <map>
 #include <stdint.h>
@@ -83,7 +83,7 @@ public:
     explicit TimerCenter(
         boost::asio::io_service&,
         util::Logger&,
-        const std::deque<std::tr1::shared_ptr<util::Actor> >&,
+        const std::deque<std::shared_ptr<util::Actor> >&,
         util::SequenceGenerator&);
     ~TimerCenter();
 
@@ -127,7 +127,7 @@ private:
 private:
     boost::asio::io_service& mIoService;
     util::Logger& mLogger;
-    const std::deque<std::tr1::shared_ptr<util::Actor> >& mActors;
+    const std::deque<std::shared_ptr<util::Actor> >& mActors;
     util::SequenceGenerator& mSeqGen;
 
     boost::asio::deadline_timer mCleaner;

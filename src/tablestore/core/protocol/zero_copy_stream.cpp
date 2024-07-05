@@ -48,12 +48,12 @@ MemPoolZeroCopyInputStream::MemPoolZeroCopyInputStream(deque<MemPiece>& a)
 
 bool MemPoolZeroCopyInputStream::Next(const void** data, int* size)
 {
-    if (!mBackupPiece.present() && mPieces.empty()) {
+    if (!mBackupPiece && mPieces.empty()) {
         return false;
     }
-    if (mBackupPiece.present()) {
+    if (mBackupPiece) {
         MemPiece x = *mBackupPiece;
-        mBackupPiece = Optional<MemPiece>();
+        mBackupPiece = std::optional<MemPiece>();
         *data = x.data();
         *size = x.length();
         mReadBytes += x.length();
@@ -73,7 +73,7 @@ void MemPoolZeroCopyInputStream::BackUp(int count)
         (count)
         (mLastPiece.length());
     MemPiece p = mLastPiece.subpiece(mLastPiece.length() - count, count);
-    mBackupPiece.reset(util::move(p));
+    mBackupPiece.emplace(std::move(p));
     mReadBytes -= count;
 }
 

@@ -38,14 +38,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/logging.hpp"
 #include "tablestore/util/threading.hpp"
 #include <boost/ref.hpp>
-#include <tr1/functional>
-#include <tr1/memory>
+#include <functional>
+#include <memory>
 #include <stdexcept>
 #include <set>
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -84,13 +84,13 @@ class Testbench
 {
 public:
     explicit Testbench(
-        Optional<OTSError>&,
+        std::optional<OTSError>&,
         const string& csname);
 
     void operator()(
-        CreateTableRequest&, Optional<OTSError>&, CreateTableResponse&);
+        CreateTableRequest&, std::optional<OTSError>&, CreateTableResponse&);
     void operator()(
-        DeleteTableRequest&, Optional<OTSError>&, DeleteTableResponse&);
+        DeleteTableRequest&, std::optional<OTSError>&, DeleteTableResponse&);
 
     void asyncCreateTable();
     void asyncDeleteTable();
@@ -120,7 +120,7 @@ public:
 
 private:
     Trial* mTrial;
-    Optional<OTSError>& mOutError;
+    std::optional<OTSError>& mOutError;
     const string& mCaseName;
 
     shared_ptr<Semaphore> mSem;
@@ -129,7 +129,7 @@ private:
 };
 
 Testbench::Testbench(
-    Optional<OTSError>& outError,
+    std::optional<OTSError>& outError,
     const string& csname)
   : mTrial(NULL),
     mOutError(outError),
@@ -146,8 +146,8 @@ Testbench::Testbench(
     opts.mutableMaxConnections() = 2;
     opts.resetLogger(mRootLogger->spawn("sdk"));
     AsyncClient* p = NULL;
-    Optional<OTSError> err = AsyncClient::create(p, ep, cr, opts);
-    OTS_ASSERT(!err.present())
+    std::optional<OTSError> err = AsyncClient::create(p, ep, cr, opts);
+    OTS_ASSERT(!err)
         (*err)
         (ep)
         (cr)
@@ -157,10 +157,10 @@ Testbench::Testbench(
 
 void Testbench::operator()(
     CreateTableRequest& req,
-    Optional<OTSError>& err,
+    std::optional<OTSError>& err,
     CreateTableResponse& resp)
 {
-    if (err.present()) {
+    if (err) {
         OTS_LOG_DEBUG(*mRootLogger)
             ("Error", *err)
             .what("FT: fail to create table");
@@ -175,14 +175,14 @@ void Testbench::operator()(
 
 void Testbench::operator()(
     DeleteTableRequest& req,
-    Optional<OTSError>& err,
+    std::optional<OTSError>& err,
     DeleteTableResponse& resp)
 {
-    if (err.present()) {
+    if (err) {
         OTS_LOG_DEBUG(*mRootLogger)
             ("Error", *err)
             .what("FT: fail to delete table");
-        if (!mOutError.present()) {
+        if (!mOutError) {
             moveAssign(mOutError, util::move(err));
         }
     } else {
@@ -219,7 +219,7 @@ class ListTableTrial: public Trial
 public:
     explicit ListTableTrial(
         Testbench& tb,
-        Optional<OTSError>& outErr,
+        std::optional<OTSError>& outErr,
         ListTableResponse& outResp)
       : Trial(tb),
         mOutError(outErr),
@@ -234,10 +234,10 @@ public:
 
     void operator()(
         ListTableRequest&,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         ListTableResponse& resp)
     {
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to list table");
@@ -251,19 +251,19 @@ public:
     }
 
 private:
-    Optional<OTSError>& mOutError;
+    std::optional<OTSError>& mOutError;
     ListTableResponse& mOutResp;
 };
 
 void AsyncListTable(const string& csname)
 {
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     ListTableResponse resp;
     Testbench tb(err, csname);
     ListTableTrial trial(tb, err, resp);
     tb.gogogo(trial);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
     set<string> tables;
     const IVector<string>& xs = resp.tables();
@@ -280,7 +280,7 @@ class DescribeTableTrial: public Trial
 public:
     explicit DescribeTableTrial(
         Testbench& tb,
-        Optional<OTSError>& outErr,
+        std::optional<OTSError>& outErr,
         DescribeTableResponse& outResp)
       : Trial(tb),
         mOutError(outErr),
@@ -296,10 +296,10 @@ public:
 
     void operator()(
         DescribeTableRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         DescribeTableResponse& resp)
     {
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to describe table");
@@ -313,19 +313,19 @@ public:
     }
 
 private:
-    Optional<OTSError>& mOutError;
+    std::optional<OTSError>& mOutError;
     DescribeTableResponse& mOutResp;
 };
 
 void AsyncDescribeTable(const string& csname)
 {
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     DescribeTableResponse resp;
     Testbench tb(err, csname);
     DescribeTableTrial trial(tb, err, resp);
     tb.gogogo(trial);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
     const TableMeta& meta = resp.meta();
     TESTA_ASSERT(meta.tableName() == csname)
@@ -349,7 +349,7 @@ class UpdateTableTrial: public Trial
 public:
     explicit UpdateTableTrial(
         Testbench& tb,
-        Optional<OTSError>& outErr,
+        std::optional<OTSError>& outErr,
         DescribeTableResponse& dtResp,
         UpdateTableRequest& utReq)
       : Trial(tb),
@@ -365,11 +365,11 @@ public:
 
     void operator()(
         UpdateTableRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         UpdateTableResponse& resp)
     {
         moveAssign(mUpdateTableRequest, util::move(req));
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to update table");
@@ -386,10 +386,10 @@ public:
 
     void operator()(
         DescribeTableRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         DescribeTableResponse& resp)
     {
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to describe table");
@@ -403,14 +403,14 @@ public:
     }
 
 private:
-    Optional<OTSError>& mOutError;
+    std::optional<OTSError>& mOutError;
     DescribeTableResponse& mDescribeTableResponse;
     UpdateTableRequest& mUpdateTableRequest;
 };
 
 void AsyncUpdateTable(const string& csname)
 {
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     UpdateTableRequest utReq;
     utReq.mutableTable() = csname;
     utReq.mutableOptions().mutableMaxVersions().reset(2);
@@ -419,9 +419,9 @@ void AsyncUpdateTable(const string& csname)
     UpdateTableTrial trial(tb, err, dtResp, utReq);
     tb.gogogo(trial);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err)(utReq)(dtResp).issue();
-    TESTA_ASSERT(dtResp.options().maxVersions().present())
+    TESTA_ASSERT(dtResp.options().maxVersions())
         (utReq)(dtResp).issue();
     TESTA_ASSERT(*dtResp.options().maxVersions() == *utReq.options().maxVersions())
         (utReq)(dtResp).issue();
@@ -433,7 +433,7 @@ class PutRowTrial: public Trial
 public:
     explicit PutRowTrial(
         Testbench& tb,
-        Optional<OTSError>& outErr,
+        std::optional<OTSError>& outErr,
         deque<Row>& resultRows,
         PutRowRequest& prReq)
       : Trial(tb),
@@ -456,11 +456,11 @@ public:
 
     void putRowCallback(
         PutRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
         moveAssign(mPutRowRequest, util::move(req));
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
@@ -483,11 +483,11 @@ public:
             PrimaryKeyColumn("pkey", PrimaryKeyValue::toInfMax());
         cri.mutableTable() = testbench().caseName();
         cri.mutableMaxVersions().reset(1);
-        auto_ptr<SyncClient> sclient(SyncClient::create(testbench().client()));
+        unique_ptr<SyncClient> sclient(SyncClient::create(testbench().client()));
         RangeIterator iter(*sclient, cri);
         for(;;) {
-            Optional<OTSError> e = iter.moveNext();
-            if (e.present()) {
+            std::optional<OTSError> e = iter.moveNext();
+            if (e) {
                 OTS_LOG_DEBUG(testbench().logger())
                     ("Error", *e)
                     .what("RI: Error on range iterator");
@@ -507,7 +507,7 @@ public:
     }
 
 private:
-    Optional<OTSError>& mOutError;
+    std::optional<OTSError>& mOutError;
     deque<Row>& mResultRows;
     PutRowRequest& mPutRowRequest;
     Thread mReadRowsThread;
@@ -515,7 +515,7 @@ private:
 
 void AsyncPutRow(const string& csname)
 {
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     PutRowRequest req;
     req.mutableRowChange().mutableTable() = csname;
     req.mutableRowChange().mutablePrimaryKey().append() =
@@ -528,7 +528,7 @@ void AsyncPutRow(const string& csname)
     tb.gogogo(trial);
     trial.close();
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
     TESTA_ASSERT(resultRows.size() == 1)
         (resultRows)(req).issue();
@@ -549,7 +549,7 @@ class GetRowTrial: public Trial
 public:
     explicit GetRowTrial(
         Testbench& tb,
-        Optional<OTSError>& outErr,
+        std::optional<OTSError>& outErr,
         GetRowResponse& grRespHit,
         GetRowResponse& grRespMiss,
         PutRowRequest& prReq)
@@ -569,11 +569,11 @@ public:
 
     void callbackPutRow(
         PutRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
         moveAssign(mPutRowRequest, util::move(req));
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
@@ -594,10 +594,10 @@ public:
 
     void callbackGetRowHit(
         GetRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         GetRowResponse& resp)
     {
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to get hit-row");
@@ -620,10 +620,10 @@ public:
 
     void callbackGetRowMiss(
         GetRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         GetRowResponse& resp)
     {
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to get miss-row");
@@ -638,7 +638,7 @@ public:
     }
 
 private:
-    Optional<OTSError>& mOutError;
+    std::optional<OTSError>& mOutError;
     GetRowResponse& mGetRowRespHit;
     GetRowResponse& mGetRowRespMiss;
     PutRowRequest& mPutRowRequest;
@@ -646,7 +646,7 @@ private:
 
 void AsyncGetRow(const string& csname)
 {
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     PutRowRequest prReq;
     prReq.mutableRowChange().mutableTable() = csname;
     prReq.mutableRowChange().mutablePrimaryKey().append() =
@@ -659,11 +659,11 @@ void AsyncGetRow(const string& csname)
     GetRowTrial trial(tb, err, grRespHit, grRespMiss, prReq);
     tb.gogogo(trial);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
     {
-        const Optional<Row>& row = grRespHit.row();
-        TESTA_ASSERT(row.present())
+        const std::optional<Row>& row = grRespHit.row();
+        TESTA_ASSERT(row)
             (grRespHit).issue();
         TESTA_ASSERT(row->primaryKey().compare(prReq.rowChange().primaryKey()) == kCR_Equivalent)
             (grRespHit)(prReq).issue();
@@ -677,7 +677,7 @@ void AsyncGetRow(const string& csname)
             (grRespHit)(prReq).issue();
     }
     {
-        TESTA_ASSERT(!grRespMiss.row().present())
+        TESTA_ASSERT(!grRespMiss.row())
             (grRespMiss).issue();
     }
 }
@@ -688,7 +688,7 @@ class UpdateRowTrial: public Trial
 public:
     explicit UpdateRowTrial(
         Testbench& tb,
-        Optional<OTSError>& outErr,
+        std::optional<OTSError>& outErr,
         deque<Row>& resultRows,
         PutRowRequest& prReq,
         UpdateRowRequest& urReq)
@@ -713,11 +713,11 @@ public:
 
     void callbackPutRow(
         PutRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
         moveAssign(mPutRowRequest, util::move(req));
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
@@ -734,11 +734,11 @@ public:
 
     void callbackUpdateRow(
         UpdateRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         UpdateRowResponse& resp)
     {
         moveAssign(mUpdateRowRequest, util::move(req));
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to update row");
@@ -761,11 +761,11 @@ public:
             PrimaryKeyColumn("pkey", PrimaryKeyValue::toInfMax());
         cri.mutableTable() = testbench().caseName();
         cri.mutableMaxVersions().reset(1);
-        auto_ptr<SyncClient> sclient(SyncClient::create(testbench().client()));
+        unique_ptr<SyncClient> sclient(SyncClient::create(testbench().client()));
         RangeIterator iter(*sclient, cri);
         for(;;) {
-            Optional<OTSError> e = iter.moveNext();
-            if (e.present()) {
+            std::optional<OTSError> e = iter.moveNext();
+            if (e) {
                 OTS_LOG_DEBUG(testbench().logger())
                     ("Error", *e)
                     .what("RI: Error on range iterator");
@@ -785,7 +785,7 @@ public:
     }
 
 private:
-    Optional<OTSError>& mOutError;
+    std::optional<OTSError>& mOutError;
     deque<Row>& mResultRows;
     PutRowRequest& mPutRowRequest;
     UpdateRowRequest& mUpdateRowRequest;
@@ -795,7 +795,7 @@ private:
 void AsyncUpdateRow(const string& csname)
 {
     UtcTime ts = UtcTime::fromMsec(UtcTime::now().toMsec());
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     PutRowRequest prReq;
     {
         prReq.mutableRowChange().mutableTable() = csname;
@@ -847,7 +847,7 @@ void AsyncUpdateRow(const string& csname)
     tb.gogogo(trial);
     trial.close();
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
     int64_t osz = oracle.size();
     int64_t tsz = trialRows.size();
@@ -878,7 +878,7 @@ class DeleteRowTrial: public Trial
 public:
     explicit DeleteRowTrial(
         Testbench& tb,
-        Optional<OTSError>& outErr,
+        std::optional<OTSError>& outErr,
         deque<Row>& resultRows,
         PutRowRequest& prReq)
       : Trial(tb),
@@ -902,11 +902,11 @@ public:
 
     void callbackPutRow(
         PutRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
         moveAssign(mPutRowRequest, util::move(req));
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
@@ -927,10 +927,10 @@ public:
 
     void callbackDeleteRow(
         DeleteRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         DeleteRowResponse& resp)
     {
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to update row");
@@ -953,11 +953,11 @@ public:
             PrimaryKeyColumn("pkey", PrimaryKeyValue::toInfMax());
         cri.mutableTable() = testbench().caseName();
         cri.mutableMaxVersions().reset(1);
-        auto_ptr<SyncClient> sclient(SyncClient::create(testbench().client()));
+        unique_ptr<SyncClient> sclient(SyncClient::create(testbench().client()));
         RangeIterator iter(*sclient, cri);
         for(;;) {
-            Optional<OTSError> e = iter.moveNext();
-            if (e.present()) {
+            std::optional<OTSError> e = iter.moveNext();
+            if (e) {
                 OTS_LOG_DEBUG(testbench().logger())
                     ("Error", *e)
                     .what("RI: Error on range iterator");
@@ -977,7 +977,7 @@ public:
     }
 
 private:
-    Optional<OTSError>& mOutError;
+    std::optional<OTSError>& mOutError;
     deque<Row>& mResultRows;
     PutRowRequest& mPutRowRequest;
     Thread mReadRowsThread;
@@ -985,7 +985,7 @@ private:
 
 void AsyncDeleteRow(const string& csname)
 {
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     PutRowRequest prReq;
     {
         prReq.mutableRowChange().mutableTable() = csname;
@@ -998,7 +998,7 @@ void AsyncDeleteRow(const string& csname)
     tb.gogogo(trial);
     trial.close();
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
     TESTA_ASSERT(trialRows.size() == 0)
         (trialRows.size())(trialRows).issue();
@@ -1010,7 +1010,7 @@ class BatchGetRowTrial: public Trial
 public:
     explicit BatchGetRowTrial(
         Testbench& tb,
-        Optional<OTSError>& outErr,
+        std::optional<OTSError>& outErr,
         BatchGetRowResponse& bgrResp,
         PutRowRequest& prReq,
         BatchGetRowRequest& bgrReq)
@@ -1035,11 +1035,11 @@ public:
 
     void callbackPutRow(
         PutRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
         moveAssign(mPutRowRequest, util::move(req));
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
@@ -1056,11 +1056,11 @@ public:
 
     void callbackBatchGetRow(
         BatchGetRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         BatchGetRowResponse& resp)
     {
         moveAssign(mBgrRequest, util::move(req));
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to batch get rows");
@@ -1075,7 +1075,7 @@ public:
     }
 
 private:
-    Optional<OTSError>& mOutError;
+    std::optional<OTSError>& mOutError;
     BatchGetRowResponse& mBgrResp;
     PutRowRequest& mPutRowRequest;
     BatchGetRowRequest& mBgrRequest;
@@ -1083,7 +1083,7 @@ private:
 
 void AsyncBatchGetRow(const string& csname)
 {
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     PutRowRequest prReq;
     {
         prReq.mutableRowChange().mutableTable() = csname;
@@ -1118,7 +1118,7 @@ void AsyncBatchGetRow(const string& csname)
     tb.gogogo(trial);
     trial.close();
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
     const IVector<BatchGetRowResponse::Result>& results = bgrResp.results();
     TESTA_ASSERT(results.size() == 2)
@@ -1126,7 +1126,7 @@ void AsyncBatchGetRow(const string& csname)
 
     TESTA_ASSERT(results[0].get().ok())
         (bgrResp).issue();
-    TESTA_ASSERT(results[0].get().okValue().present())
+    TESTA_ASSERT(results[0].get().okValue())
         (bgrResp).issue();
     TESTA_ASSERT(pp::prettyPrint(*results[0].get().okValue()) ==
         "{\"PrimaryKey\":{\"pkey\":123},\"Attributes\":[]}")
@@ -1135,7 +1135,7 @@ void AsyncBatchGetRow(const string& csname)
 
     TESTA_ASSERT(results[1].get().ok())
         (bgrResp).issue();
-    TESTA_ASSERT(!results[1].get().okValue().present())
+    TESTA_ASSERT(!results[1].get().okValue())
         (bgrResp).issue();
     TESTA_ASSERT(results[1].userData() == kMissRowKey).issue();
 }
@@ -1146,7 +1146,7 @@ class BatchWriteRowTrial: public Trial
 public:
     explicit BatchWriteRowTrial(
         Testbench& tb,
-        Optional<OTSError>& outErr,
+        std::optional<OTSError>& outErr,
         deque<Row>& resultRows,
         BatchWriteRowResponse& bwrResp,
         PutRowRequest& prReq,
@@ -1173,11 +1173,11 @@ public:
 
     void callbackPutRow(
         PutRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
         moveAssign(mPutRowRequest, util::move(req));
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
@@ -1194,11 +1194,11 @@ public:
 
     void callbackBatchWriteRow(
         BatchWriteRowRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         BatchWriteRowResponse& resp)
     {
         moveAssign(mBwrRequest, util::move(req));
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to batch get rows");
@@ -1222,11 +1222,11 @@ public:
             PrimaryKeyColumn("pkey", PrimaryKeyValue::toInfMax());
         cri.mutableTable() = testbench().caseName();
         cri.mutableMaxVersions().reset(1);
-        auto_ptr<SyncClient> sclient(SyncClient::create(testbench().client()));
+        unique_ptr<SyncClient> sclient(SyncClient::create(testbench().client()));
         RangeIterator iter(*sclient, cri);
         for(;;) {
-            Optional<OTSError> e = iter.moveNext();
-            if (e.present()) {
+            std::optional<OTSError> e = iter.moveNext();
+            if (e) {
                 OTS_LOG_DEBUG(testbench().logger())
                     ("Error", *e)
                     .what("RI: Error on range iterator");
@@ -1246,7 +1246,7 @@ public:
     }
 
 private:
-    Optional<OTSError>& mOutError;
+    std::optional<OTSError>& mOutError;
     deque<Row>& mResultRows;
     BatchWriteRowResponse& mBwrResponse;
     PutRowRequest& mPutRowRequest;
@@ -1257,7 +1257,7 @@ private:
 void AsyncBatchWriteRow(const string& csname)
 {
     UtcTime ts = UtcTime::fromMsec(UtcTime::now().toMsec());
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     PutRowRequest prReq;
     {
         prReq.mutableRowChange().mutableTable() = csname;
@@ -1313,7 +1313,7 @@ void AsyncBatchWriteRow(const string& csname)
     tb.gogogo(trial);
     trial.close();
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
 
     TESTA_ASSERT(bwrResp.putResults().size() == 1)
@@ -1358,7 +1358,7 @@ class ComputeSplitsBySizeTrial: public Trial
 public:
     explicit ComputeSplitsBySizeTrial(
         Testbench& tb,
-        Optional<OTSError>& outErr,
+        std::optional<OTSError>& outErr,
         ComputeSplitsBySizeResponse& resp,
         ComputeSplitsBySizeRequest& req)
       : Trial(tb),
@@ -1376,11 +1376,11 @@ public:
 
     void callbackComputeSplitsBySize(
         ComputeSplitsBySizeRequest& req,
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         ComputeSplitsBySizeResponse& resp)
     {
         moveAssign(mReq, util::move(req));
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
@@ -1395,14 +1395,14 @@ public:
     }
 
 private:
-    Optional<OTSError>& mOutError;
+    std::optional<OTSError>& mOutError;
     ComputeSplitsBySizeResponse& mResp;
     ComputeSplitsBySizeRequest& mReq;
 };
 
 void AsyncComputeSplitsBySize(const string& csname)
 {
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     ComputeSplitsBySizeRequest req;
     req.mutableTable() = csname;
     req.mutableSplitSize() = 1; // 100MB
@@ -1411,7 +1411,7 @@ void AsyncComputeSplitsBySize(const string& csname)
     ComputeSplitsBySizeTrial trial(tb, err, resp, req);
     tb.gogogo(trial);
 
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
     TESTA_ASSERT(resp.splits().size() == 1)
         (resp).issue();
@@ -1427,11 +1427,11 @@ public:
         mOngoingReqs(0)
     {
         AsyncBatchWriter* w = NULL;
-        Optional<OTSError> err = AsyncBatchWriter::create(
+        std::optional<OTSError> err = AsyncBatchWriter::create(
             w,
             testbench().client(),
             BatchWriterConfig());
-        TESTA_ASSERT(!err.present())
+        TESTA_ASSERT(!err)
             (*err).issue();
         mWriter.reset(w);
     }
@@ -1462,9 +1462,9 @@ public:
         }
     }
 
-    void writeCallback(PutRowRequest& req, Optional<OTSError>& err, PutRowResponse& resp)
+    void writeCallback(PutRowRequest& req, std::optional<OTSError>& err, PutRowResponse& resp)
     {
-        if (err.present()) {
+        if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Request", req)
                 ("Error", *err);
@@ -1491,11 +1491,11 @@ public:
         cri.mutableTable() = testbench().caseName();
         cri.mutableMaxVersions().reset(1);
         try {
-            auto_ptr<SyncClient> sclient(SyncClient::create(testbench().client()));
+            unique_ptr<SyncClient> sclient(SyncClient::create(testbench().client()));
             RangeIterator iter(*sclient, cri);
             for(;;) {
-                Optional<OTSError> e = iter.moveNext();
-                if (e.present()) {
+                std::optional<OTSError> e = iter.moveNext();
+                if (e) {
                     OTS_LOG_DEBUG(testbench().logger())
                         ("Error", *e)
                         .what("RI: Error on range iterator");
@@ -1524,13 +1524,13 @@ public:
 private:
     deque<PrimaryKeyValue>& mRows;
     boost::atomic<int64_t> mOngoingReqs;
-    auto_ptr<AsyncBatchWriter> mWriter;
+    unique_ptr<AsyncBatchWriter> mWriter;
     Actor mActor;
 };
 
 void AsyncBatchWriter(const string& csname)
 {
-    Optional<OTSError> err;
+    std::optional<OTSError> err;
     Testbench tb(err, csname);
     deque<PrimaryKeyValue> pkeys;
     BatchWriterTrial trial(tb, pkeys);

@@ -51,17 +51,17 @@ void BookmarkInputStream::feed(const MemPiece& mem)
     mBuffers.push_back(mem);
 }
 
-Optional<uint8_t> BookmarkInputStream::peek()
+std::optional<uint8_t> BookmarkInputStream::peek()
 {
     if (mCurrent.mIndex >= mBuffers.size()) {
-        return Optional<uint8_t>();
+        return std::optional<uint8_t>();
     }
     OTS_ASSERT(mCurrent.mOffset < mBuffers[mCurrent.mIndex].length())
         (mTracker)
         (mCurrent.mOffset)
         (mCurrent.mIndex)
         (mBuffers[mCurrent.mIndex].length());
-    return Optional<uint8_t>(mBuffers[mCurrent.mIndex].get(mCurrent.mOffset));
+    return std::optional<uint8_t>(mBuffers[mCurrent.mIndex].get(mCurrent.mOffset));
 }
 
 bool BookmarkInputStream::moveNext()

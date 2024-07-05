@@ -35,13 +35,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/prettyprint.hpp"
 #include "tablestore/util/foreach.hpp"
 #include "testa/testa.hpp"
-#include <tr1/tuple>
+#include <tuple>
 #include <deque>
 #include <map>
 #include <string>
 
 using namespace std;
-using namespace std::tr1;
+
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {

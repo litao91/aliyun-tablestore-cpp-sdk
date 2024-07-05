@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/core/types.hpp"
 #include "tablestore/util/mempiece.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include <deque>
 #include <stdint.h>
 
@@ -59,7 +59,7 @@ public:
      * If it is pointed to the end, nothing will be returned.
      * Thread-unsafe.
      */
-    util::Optional<uint8_t> peek();
+    std::optional<uint8_t> peek();
     /**
      * Moves to the next position and returns true if there is one;
      * otherwise, returns false.

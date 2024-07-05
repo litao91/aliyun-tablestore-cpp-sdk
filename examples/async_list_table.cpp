@@ -20,8 +20,8 @@ AsyncClient* initOtsClient()
     ClientOptions opts;
     AsyncClient* pclient = NULL;
     {
-        Optional<OTSError> res = AsyncClient::create(pclient, ep, cr, opts);
-        assert(!res.present());
+        std::optional<OTSError> res = AsyncClient::create(pclient, ep, cr, opts);
+        assert(!res);
     }
     sleep(30); // wait a while for connection ready
     return pclient;
@@ -29,10 +29,10 @@ AsyncClient* initOtsClient()
 
 void listTableCallback(
     ListTableRequest&,
-    Optional<OTSError>& err,
+    std::optional<OTSError>& err,
     ListTableResponse& resp)
 {
-    if (err.present()) {
+    if (err) {
         cout << pp::prettyPrint(*err) << endl;
     } else {
         const IVector<string>& xs = resp.tables();
@@ -49,7 +49,7 @@ void listTable(AsyncClient& client)
 }
 
 int main() {
-    auto_ptr<AsyncClient> client(initOtsClient());
+    unique_ptr<AsyncClient> client(initOtsClient());
     listTable(*client);
     return 0;
 }

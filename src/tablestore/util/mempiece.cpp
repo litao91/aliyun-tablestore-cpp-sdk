@@ -65,12 +65,12 @@ inline bool digit(uint8_t c)
 
 namespace impl {
 
-Optional<string> FromMemPiece<int64_t, void>::operator()(
+std::optional<string> FromMemPiece<int64_t, void>::operator()(
     int64_t& out,
     const MemPiece& mp) const
 {
     if (mp.length() == 0) {
-        return Optional<string>(string("Empty piece of memory."));
+        return std::optional<string>(string("Empty piece of memory."));
     }
     const uint8_t* b = mp.data();
     const uint8_t* e = b + mp.length();
@@ -83,33 +83,33 @@ Optional<string> FromMemPiece<int64_t, void>::operator()(
     if (positive) {
         for(; b < e; ++b) {
             if (!digit(*b)) {
-                return Optional<string>(string("Nondigital."));
+                return std::optional<string>(string("Nondigital."));
             }
             x = x * 10 + (*b - '0');
             if (x < 0) {
-                return Optional<string>(string("Overflow."));
+                return std::optional<string>(string("Overflow."));
             }
         }
         out = x;
     } else {
         if (b == e) {
-            return Optional<string>(string("A single '-'."));
+            return std::optional<string>(string("A single '-'."));
         }
         for(; b < e; ++b) {
             if (!digit(*b)) {
-                return Optional<string>(string("Nondigital."));
+                return std::optional<string>(string("Nondigital."));
             }
             x = x * 10 - (*b - '0');
             if (x >= 0) {
-                return Optional<string>(string("Underflow."));
+                return std::optional<string>(string("Underflow."));
             }
         }
         out = x;
     }
-    return Optional<string>();
+    return std::optional<string>();
 }
 
-Optional<string> FromMemPiece<string, void>::operator()(
+std::optional<string> FromMemPiece<string, void>::operator()(
     string& out,
     const MemPiece& mp) const
 {
@@ -119,7 +119,7 @@ Optional<string> FromMemPiece<string, void>::operator()(
     out.append(
         static_cast<const char*>(static_cast<const void*>(mp.data())),
         mp.length());
-    return Optional<string>();
+    return std::optional<string>();
 }
 
 } // namespace impl

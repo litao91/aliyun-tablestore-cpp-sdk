@@ -37,15 +37,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/assert.hpp"
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
 namespace tablestore {
 namespace core {
 
-Optional<OTSError> SyncClient::create(
+std::optional<OTSError> SyncClient::create(
     SyncClient*& result,
     Endpoint& ep, Credential& cr, ClientOptions& opts)
 {
@@ -53,7 +53,7 @@ Optional<OTSError> SyncClient::create(
     TRY(impl::AsyncClientBase::create(ac, ep, cr, opts));
     result = new impl::SyncClient(ac);
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 SyncClient* SyncClient::create(AsyncClient& a)
@@ -65,7 +65,7 @@ SyncClient* SyncClient::create(AsyncClient& a)
     return new impl::SyncClient(*c);
 }
 
-Optional<OTSError> AsyncClient::create(
+std::optional<OTSError> AsyncClient::create(
     AsyncClient*& result,
     Endpoint& ep,
     Credential& cr,
@@ -75,7 +75,7 @@ Optional<OTSError> AsyncClient::create(
     TRY(impl::AsyncClientBase::create(ac, ep, cr, opts));
     result = new impl::AsyncClient(ac);
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 AsyncClient* AsyncClient::create(SyncClient& a)

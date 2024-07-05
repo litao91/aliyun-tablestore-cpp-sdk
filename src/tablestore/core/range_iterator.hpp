@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/core/types.hpp"
 #include "tablestore/core/error.hpp"
 #include "tablestore/util/logger.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/iterator.hpp"
 #include "tablestore/util/threading.hpp"
 #include "tablestore/util/result.hpp"
@@ -69,8 +69,8 @@ public:
 
     bool valid() const throw();
     Row& get() throw();
-    util::Optional<OTSError> moveNext();
-    util::Optional<PrimaryKey> nextStart();
+    std::optional<OTSError> moveNext();
+    std::optional<PrimaryKey> nextStart();
     CapacityUnit consumedCapacity();
 
 private:
@@ -85,15 +85,15 @@ private:
         kNoMoreRows,
     };
 
-    std::auto_ptr<util::Logger> mLogger;
+    std::unique_ptr<util::Logger> mLogger;
     SyncClient& mClient;
     boost::atomic<bool> mStop;
-    std::auto_ptr<impl::RowQueue> mRowQueue;
+    std::unique_ptr<impl::RowQueue> mRowQueue;
     Stage mStage;
     Row mCurrentRow;
     util::Thread mBgLoopThread;
     util::Mutex mMutex;
-    util::Optional<PrimaryKey> mNextStart;
+    std::optional<PrimaryKey> mNextStart;
     CapacityUnit mConsumedCapacity;
 };
 

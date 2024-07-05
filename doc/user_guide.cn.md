@@ -128,15 +128,15 @@ void syncListTable()
     ClientOptions opts;
     SyncClient* pclient = NULL;
     {
-        Optional<OTSError> res = SyncClient::create(pclient, ep, cr, opts);
-        assert(!res.present());
+        std::optional<OTSError> res = SyncClient::create(pclient, ep, cr, opts);
+        assert(!res);
     }
-    auto_ptr<SyncClient> client(pclient);
+    unique_ptr<SyncClient> client(pclient);
     sleep(30); // wait a while for connection ready
     ListTableRequest req;
     ListTableResponse resp;
-    Optional<OTSError> res = client->listTable(resp, req);
-    assert(!res.present());
+    std::optional<OTSError> res = client->listTable(resp, req);
+    assert(!res);
     const IVector<string>& xs = resp.tables();
     for(int64_t i = 0; i < xs.size(); ++i) {
         cout << xs[i] << endl;
@@ -218,7 +218,7 @@ SDK构造客户端有两种方法
   Credential cr("AccessKeyId", "AccessKeySecret");
   ClientOptions opts;
   SyncClient* client = NULL;
-  Optional<OTSError> res = SyncClient::create(client, ep, cr, opts);
+  std::optional<OTSError> res = SyncClient::create(client, ep, cr, opts);
   ```
   准备好`Endpoint`, `Credential`, `ClientOptions`和一根空的`SyncClient`指针，调用`SyncClient::create()`。
   需要注意的是，`SyncClient::create()`会检查传入的参数是否合理，因而有可能会返回`OTSError`。
@@ -251,7 +251,7 @@ SDK构造客户端有两种方法
 SyncClient* client = ...;
 ListTableRequest req;
 ListTableResponse resp;
-Optional<OTSError> res = client->listTable(resp, req);
+std::optional<OTSError> res = client->listTable(resp, req);
 ```
 在调用`SyncClient::listTable()`之前事先准备好
 * 作为请求内容的`ListTableRequest`对象
@@ -285,7 +285,7 @@ CreateTableRequest req;
     }
 }
 CreateTableResponse resp;
-Optional<OTSError> res = client.createTable(resp, req);
+std::optional<OTSError> res = client.createTable(resp, req);
 ```
 
 创建表时必须指定表的名字和主键。
@@ -319,11 +319,11 @@ CreateTableRequest req;
     {
         // 0 reserved read capacity-unit, 1 reserved write capacity-unit
         CapacityUnit cu(0, 1);
-        opts.mutableReservedThroughput().reset(util::move(cu));
+        opts.mutableReservedThroughput().emplace(std::move(cu));
     }
 }
 CreateTableResponse resp;
-Optional<OTSError> res = client.createTable(resp, req);
+std::optional<OTSError> res = client.createTable(resp, req);
 ```
 
 所有可变参数罗列于此：
@@ -351,7 +351,7 @@ Optional<OTSError> res = client.createTable(resp, req);
 DeleteTableRequest req;
 req.mutableTable() = "YourTable";
 DeleteTableResponse resp;
-Optional<OTSError> res = client.deleteTable(resp, req);
+std::optional<OTSError> res = client.deleteTable(resp, req);
 ```
 
 ### 更新表参数
@@ -369,10 +369,10 @@ UpdateTableResponse resp;
     {
         // 0 reserved read capacity-unit, 1 reserved write capacity-unit
         CapacityUnit cu(0, 1);
-        opts.mutableReservedThroughput().reset(util::move(cu));
+        opts.mutableReservedThroughput().emplace(std::move(cu));
     }
 }
-Optional<OTSError> res = client.updateTable(resp, req);
+std::optional<OTSError> res = client.updateTable(resp, req);
 ```
 
 ### 获取表信息
@@ -381,7 +381,7 @@ Optional<OTSError> res = client.updateTable(resp, req);
 DescribeTableRequest req;
 req.mutableTable() = "YourTable";
 DescribeTableResponse resp;
-Optional<OTSError> res = client.describeTable(resp, req);
+std::optional<OTSError> res = client.describeTable(resp, req);
 ```
 
 通过`describeTable()`接口我们可以获取：
@@ -414,7 +414,7 @@ GetRowRequest req;
     query.mutableMaxVersions().reset(1);
 }
 GetRowResponse resp;
-Optional<OTSError> res = client.getRow(resp, req);
+std::optional<OTSError> res = client.getRow(resp, req);
 ```
 
 指定表名和一行的主键，读取的结果可能有两种：
@@ -448,7 +448,7 @@ BatchGetRowRequest req;
     criterion.mutableMaxVersions().reset(1);
 }
 BatchGetRowResponse resp;
-Optional<OTSError> res = client.batchGetRow(resp, req);
+std::optional<OTSError> res = client.batchGetRow(resp, req);
 ```
 
 批量单行读可以聚合一批读请求，一起发给表格存储的服务端。
@@ -494,8 +494,8 @@ query.mutableMaxVersions().reset(1);
 }
 RangeIterator iter(client, query);
 for(;;) {
-    Optional<OTSError> err = iter.moveNext();
-    if (err.present()) {
+    std::optional<OTSError> err = iter.moveNext();
+    if (err) {
         // do something with err
         abort();
     }
@@ -632,7 +632,7 @@ PutRowRequest req;
     }
 }
 PutRowResponse resp;
-Optional<OTSError> res = client.putRow(resp, req);
+std::optional<OTSError> res = client.putRow(resp, req);
 ```
 
 指定表名以及将写入的行的主键以及属性列，若该行不存在则插入，若该行存在则覆盖（即原行的所有列以及所有版本的列值都删除）。
@@ -655,7 +655,7 @@ DeleteRowRequest req;
     }
 }
 DeleteRowResponse resp;
-Optional<OTSError> res = client.deleteRow(resp, req);
+std::optional<OTSError> res = client.deleteRow(resp, req);
 ```
 
 指定表名以及将删除的行的主键，无论该行存在与否都不会报错，仅设置`DeleteRowResponse`对象。
@@ -706,7 +706,7 @@ UpdateRowRequest req;
     }
 }
 UpdateRowResponse resp;
-Optional<OTSError> res = client.updateRow(resp, req);
+std::optional<OTSError> res = client.updateRow(resp, req);
 ```
 
 单行更新操作可以更新一行内的属性列。
@@ -764,7 +764,7 @@ BatchWriteRowRequest req;
         PrimaryKeyValue::toStr("row to delete"));
 }
 BatchWriteRowResponse resp;
-Optional<OTSError> res = client.batchWriteRow(resp, req);
+std::optional<OTSError> res = client.batchWriteRow(resp, req);
 ```
 
 批量写可以用来聚集一批写操作，一次性发往服务端，避免多次网络往返带来的性能损失。
@@ -818,39 +818,39 @@ Optional<OTSError> res = client.batchWriteRow(resp, req);
 class SyncBatchWriter
 {
 public:
-    static util::Optional<OTSError> create(
+    static std::optional<OTSError> create(
         SyncBatchWriter*&,
         AsyncClient&,
         const BatchWriterConfig&);
 
-    virtual util::Optional<OTSError> putRow(
+    virtual std::optional<OTSError> putRow(
         PutRowResponse&, const PutRowRequest&) =0;
-    virtual util::Optional<OTSError> updateRow(
+    virtual std::optional<OTSError> updateRow(
         UpdateRowResponse&, const UpdateRowRequest&) =0;
-    virtual util::Optional<OTSError> deleteRow(
+    virtual std::optional<OTSError> deleteRow(
         DeleteRowResponse&, const DeleteRowRequest&) =0;
 };
 
 class AsyncBatchWriter
 {
 public:
-    static util::Optional<OTSError> create(
+    static std::optional<OTSError> create(
         AsyncBatchWriter*&,
         AsyncClient&,
         const BatchWriterConfig&);
 
     virtual void putRow(
         PutRowRequest&,
-        const std::tr1::function<void(
-            PutRowRequest&, util::Optional<OTSError>&, PutRowResponse&)>&) =0;
+        const std::function<void(
+            PutRowRequest&, std::optional<OTSError>&, PutRowResponse&)>&) =0;
     virtual void updateRow(
         UpdateRowRequest&,
-        const std::tr1::function<void(
-            UpdateRowRequest&, util::Optional<OTSError>&, UpdateRowResponse&)>&) =0;
+        const std::function<void(
+            UpdateRowRequest&, std::optional<OTSError>&, UpdateRowResponse&)>&) =0;
     virtual void deleteRow(
         DeleteRowRequest&,
-        const std::tr1::function<void(
-            DeleteRowRequest&, util::Optional<OTSError>&, DeleteRowResponse&)>&) =0;
+        const std::function<void(
+            DeleteRowRequest&, std::optional<OTSError>&, DeleteRowResponse&)>&) =0;
 };
 ```
 
@@ -916,7 +916,7 @@ CreateTableRequest req;
     }
 }
 CreateTableResponse resp;
-Optional<OTSError> res = client.createTable(resp, req);
+std::optional<OTSError> res = client.createTable(resp, req);
 ```
 
 自增主键列必须是整型，并且需要设置`PrimaryKeyColumnSchema::AutoIncrement`。
@@ -964,7 +964,7 @@ SDK构造异步客户端有两种方法
   Credential cr("AccessKeyId", "AccessKeySecret");
   ClientOptions opts;
   AsyncClient* client = NULL;
-  Optional<OTSError> res = AsyncClient::create(client, ep, cr, opts);
+  std::optional<OTSError> res = AsyncClient::create(client, ep, cr, opts);
   ```
   准备好`Endpoint`, `Credential`, `ClientOptions`和一根空的`AsyncClient`指针，调用`AsyncClient::create()`。
   需要注意的是，`AsyncClient::create()`会检查传入的参数是否合理，因而有可能会返回`OTSError`。
@@ -997,10 +997,10 @@ SDK构造异步客户端有两种方法
 ```c++
 void listTableCallback(
     ListTableRequest&,
-    Optional<OTSError>& err,
+    std::optional<OTSError>& err,
     ListTableResponse& resp)
 {
-    if (err.present()) {
+    if (err) {
         // 处理错误
     } else {
         const IVector<string>& xs = resp.tables();
@@ -1024,8 +1024,8 @@ void listTable(AsyncClient& client)
   ```c++
   void listTable(
       ListTableRequest&,
-      const std::tr1::function<void(
-          ListTableRequest&, util::Optional<OTSError>&, ListTableResponse&)>&);
+      const std::function<void(
+          ListTableRequest&, std::optional<OTSError>&, ListTableResponse&)>&);
   ```
 
   其中第一个参数是可变引用，这与同步接口不同（同步接口是不可变引用）。
@@ -1041,7 +1041,7 @@ void listTable(AsyncClient& client)
     其内容即用户调用`listTable()`时传入的请求对象。
     因为回调之后异步客户端也不再需要请求对象，于是以可变引用的方式还给用户的回调函数。
     这样用户可以将请求对象的内容转移出来。
-  - 包装在`Optional<OTSError>`内的错误对象。
+  - 包装在`std::optional<OTSError>`内的错误对象。
     如果没有错误，则该对象的`present()`方法返回`false`。
   - 响应对象。
     与请求对象类似，响应对象也是以可变引用的方式交给回调函数。
@@ -1118,13 +1118,13 @@ void listTable(AsyncClient& client)
 
 ### 错误处理
 
-可能发生错误的接口都会返回`Optional<OTSError>`对象。
-* `Optional<T>`是定义在`tablestore/util/optional.hpp`的一个模板类。
+可能发生错误的接口都会返回`std::optional<OTSError>`对象。
+* `std::optional<T>`是定义在`tablestore/util/optional.hpp`的一个模板类。
   可以把它看作一个只能存放至多一个`T`对象的箱子。
-  箱子里要么有一个`T`对象（这时`Optional<T>::present()`返回`true`），可以取出这个`T`对象来用；
-  要么箱子里没有`T`对象（这时`Optional<T>::present()`返回`false`）。
+  箱子里要么有一个`T`对象（这时`std::optional<T>::present()`返回`true`），可以取出这个`T`对象来用；
+  要么箱子里没有`T`对象（这时`std::optional<T>::present()`返回`false`）。
   我们借用这个能力来表示错误是否发生。
-  如果`Optional<OTSError>::present()`为`true`，则有错误发生。
+  如果`std::optional<OTSError>::present()`为`true`，则有错误发生。
 * `OTSError`对象表示一个具体的错误。
   它有5个字段：
   - `httpStatus`和`errorCode`，HTTP返回码和错误码。
@@ -1211,7 +1211,7 @@ void listTable(AsyncClient& client)
   {
   public:
       virtual ~SinkerCenter() {}
-      static std::tr1::shared_ptr<SinkerCenter> singleton();
+      static std::shared_ptr<SinkerCenter> singleton();
 
       virtual Sinker* registerSinker(const std::string& key, Sinker*) =0;
       virtual void flushAll() =0;

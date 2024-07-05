@@ -49,7 +49,7 @@ void BookmarkInputStream_empty(const string&)
 {
     Tracker tracker("track");
     http::BookmarkInputStream is(tracker);
-    TESTA_ASSERT(!is.peek().present()).issue();
+    TESTA_ASSERT(!is.peek()).issue();
     TESTA_ASSERT(!is.moveNext()).issue();
 }
 TESTA_DEF_JUNIT_LIKE1(BookmarkInputStream_empty);
@@ -59,7 +59,7 @@ void BookmarkInputStream_traverse(const string&)
     Tracker tracker("track");
     http::BookmarkInputStream is(tracker);
 
-    TESTA_ASSERT(!is.peek().present()).issue();
+    TESTA_ASSERT(!is.peek()).issue();
     TESTA_ASSERT(!is.moveNext()).issue();
 
     string buf0("a");
@@ -67,15 +67,15 @@ void BookmarkInputStream_traverse(const string&)
     string buf1("b");
     is.feed(MemPiece::from(buf1));
     {
-        Optional<uint8_t> c = is.peek();
-        TESTA_ASSERT(c.present()).issue();
+        std::optional<uint8_t> c = is.peek();
+        TESTA_ASSERT(c).issue();
         TESTA_ASSERT(*c == 'a')(*c).issue();
         bool ret = is.moveNext();
         TESTA_ASSERT(ret).issue();
     }
     {
-        Optional<uint8_t> c = is.peek();
-        TESTA_ASSERT(c.present()).issue();
+        std::optional<uint8_t> c = is.peek();
+        TESTA_ASSERT(c).issue();
         TESTA_ASSERT(*c == 'b')(*c).issue();
         bool ret = is.moveNext();
         TESTA_ASSERT(!ret).issue();
@@ -83,8 +83,8 @@ void BookmarkInputStream_traverse(const string&)
     string buf2("c");
     is.feed(MemPiece::from(buf2));
     {
-        Optional<uint8_t> c = is.peek();
-        TESTA_ASSERT(c.present()).issue();
+        std::optional<uint8_t> c = is.peek();
+        TESTA_ASSERT(c).issue();
         TESTA_ASSERT(*c == 'c')(*c).issue();
         bool ret = is.moveNext();
         TESTA_ASSERT(!ret).issue();

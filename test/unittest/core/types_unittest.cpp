@@ -33,14 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/prettyprint.hpp"
 #include "tablestore/util/foreach.hpp"
 #include "testa/testa.hpp"
-#include <tr1/functional>
-#include <tr1/tuple>
+#include <functional>
+#include <tuple>
 #include <string>
 #include <deque>
 #include <map>
 
 using namespace std;
-using namespace std::tr1;
+
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -110,8 +110,8 @@ void PrimaryKeyColumnSchema_validate(const string&)
 {
     {
         PrimaryKeyColumnSchema s;
-        Optional<OTSError> err = s.validate();
-        TESTA_ASSERT(err.present())
+        std::optional<OTSError> err = s.validate();
+        TESTA_ASSERT(err)
             (s).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (*err).issue();
@@ -121,8 +121,8 @@ void PrimaryKeyColumnSchema_validate(const string&)
     {
         PrimaryKeyColumnSchema s("pkey", kPKT_String,
             PrimaryKeyColumnSchema::AutoIncrement);
-        Optional<OTSError> err = s.validate();
-        TESTA_ASSERT(err.present())
+        std::optional<OTSError> err = s.validate();
+        TESTA_ASSERT(err)
             (s).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (*err).issue();
@@ -147,8 +147,8 @@ void Schema_validate(const string&)
 {
     Schema s;
     {
-        Optional<OTSError> err = s.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = s.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (s)(*err).issue();
         TESTA_ASSERT(err->message() == "Table schema must be nonempty.")
@@ -158,8 +158,8 @@ void Schema_validate(const string&)
     s.back().mutableType() = kPKT_String;
     s.back().mutableOption().reset(PrimaryKeyColumnSchema::AutoIncrement);
     {
-        Optional<OTSError> err = s.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = s.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (s)(*err).issue();
         TESTA_ASSERT(err->message() == "AutoIncrement can only be applied on kPKT_Integer, for primary key \"pkey\".")
@@ -176,8 +176,8 @@ void PrimaryKeyValue_none(const string&)
     TESTA_ASSERT(pp::prettyPrint(v) == "none")
         (v).issue();
     {
-        Optional<OTSError> err = v.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = v.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (v)(*err).issue();
         TESTA_ASSERT(err->message() == "value is required.")
@@ -286,8 +286,8 @@ void PrimaryKeyColumn_validate(const string&)
     {
         PrimaryKeyColumn c;
         c.mutableValue() = PrimaryKeyValue::toInteger(1);
-        Optional<OTSError> err = c.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = c.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (c)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -298,8 +298,8 @@ void PrimaryKeyColumn_validate(const string&)
     {
         PrimaryKeyColumn c;
         c.mutableName() = "pkey";
-        Optional<OTSError> err = c.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = c.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (c)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -324,8 +324,8 @@ void PrimaryKey_validate(const string&)
 {
     PrimaryKey pk;
     {
-        Optional<OTSError> err = pk.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = pk.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (pk)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -335,8 +335,8 @@ void PrimaryKey_validate(const string&)
     }
     pk.append().mutableName() = "pkey";
     {
-        Optional<OTSError> err = pk.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = pk.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (pk)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -364,8 +364,8 @@ void TableMeta_validate(const string&)
         TableMeta meta;
         meta.mutableSchema().append().mutableName() = "pkey";
         meta.mutableSchema().back().mutableType() = kPKT_Integer;
-        Optional<OTSError> err = meta.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = meta.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (meta)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -376,8 +376,8 @@ void TableMeta_validate(const string&)
     {
         TableMeta meta;
         meta.mutableTableName() = "table";
-        Optional<OTSError> err = meta.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = meta.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (meta)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -396,7 +396,7 @@ void TableOptions_TTL(const string&)
         (opt).issue();
 
     opt.mutableTimeToLive().reset();
-    TESTA_ASSERT(!opt.timeToLive().present())
+    TESTA_ASSERT(!opt.timeToLive())
         (opt).issue();
 }
 TESTA_DEF_JUNIT_LIKE1(TableOptions_TTL);
@@ -409,7 +409,7 @@ void TableOptions_maxversions(const string&)
         (opt).issue();
 
     opt.mutableMaxVersions().reset();
-    TESTA_ASSERT(!opt.maxVersions().present())
+    TESTA_ASSERT(!opt.maxVersions())
         (opt).issue();
 }
 TESTA_DEF_JUNIT_LIKE1(TableOptions_maxversions);
@@ -422,7 +422,7 @@ void TableOptions_BloomFilterType(const string&)
         (opt).issue();
 
     opt.mutableBloomFilterType().reset();
-    TESTA_ASSERT(!opt.bloomFilterType().present())
+    TESTA_ASSERT(!opt.bloomFilterType())
         (opt).issue();
 }
 TESTA_DEF_JUNIT_LIKE1(TableOptions_BloomFilterType);
@@ -435,7 +435,7 @@ void TableOptions_BlockSize(const string&)
         (opt).issue();
 
     opt.mutableBlockSize().reset();
-    TESTA_ASSERT(!opt.blockSize().present())
+    TESTA_ASSERT(!opt.blockSize())
         (opt).issue();
 }
 TESTA_DEF_JUNIT_LIKE1(TableOptions_BlockSize);
@@ -448,7 +448,7 @@ void TableOptions_MaxTimeDeviation(const string&)
         (opt).issue();
 
     opt.mutableMaxTimeDeviation().reset();
-    TESTA_ASSERT(!opt.maxTimeDeviation().present())
+    TESTA_ASSERT(!opt.maxTimeDeviation())
         (opt).issue();
 }
 TESTA_DEF_JUNIT_LIKE1(TableOptions_MaxTimeDeviation);
@@ -458,8 +458,8 @@ void TableOptions_validate(const string&)
     {
         TableOptions opt;
         opt.mutableTimeToLive().reset(Duration::fromUsec(1));
-        Optional<OTSError> err = opt.validate();
-        TESTA_ASSERT(err.present())
+        std::optional<OTSError> err = opt.validate();
+        TESTA_ASSERT(err)
             (opt).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (opt)(*err).issue();
@@ -467,8 +467,8 @@ void TableOptions_validate(const string&)
     {
         TableOptions opt;
         opt.mutableTimeToLive().reset(Duration::fromUsec(0));
-        Optional<OTSError> err = opt.validate();
-        TESTA_ASSERT(err.present())
+        std::optional<OTSError> err = opt.validate();
+        TESTA_ASSERT(err)
             (opt).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (opt)(*err).issue();
@@ -476,8 +476,8 @@ void TableOptions_validate(const string&)
     {
         TableOptions opt;
         opt.mutableMaxVersions().reset(0);
-        Optional<OTSError> err = opt.validate();
-        TESTA_ASSERT(err.present())
+        std::optional<OTSError> err = opt.validate();
+        TESTA_ASSERT(err)
             (opt).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (opt)(*err).issue();
@@ -485,8 +485,8 @@ void TableOptions_validate(const string&)
     {
         TableOptions opt;
         opt.mutableBlockSize().reset(0);
-        Optional<OTSError> err = opt.validate();
-        TESTA_ASSERT(err.present())
+        std::optional<OTSError> err = opt.validate();
+        TESTA_ASSERT(err)
             (opt).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (opt)(*err).issue();
@@ -494,8 +494,8 @@ void TableOptions_validate(const string&)
     {
         TableOptions opt;
         opt.mutableMaxTimeDeviation().reset(Duration::fromUsec(1));
-        Optional<OTSError> err = opt.validate();
-        TESTA_ASSERT(err.present())
+        std::optional<OTSError> err = opt.validate();
+        TESTA_ASSERT(err)
             (opt).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (opt)(*err).issue();
@@ -503,8 +503,8 @@ void TableOptions_validate(const string&)
     {
         TableOptions opt;
         opt.mutableMaxTimeDeviation().reset(Duration::fromSec(0));
-        Optional<OTSError> err = opt.validate();
-        TESTA_ASSERT(err.present())
+        std::optional<OTSError> err = opt.validate();
+        TESTA_ASSERT(err)
             (opt).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (opt)(*err).issue();
@@ -517,8 +517,8 @@ void CapacityUnit_validate(const string&)
     {
         CapacityUnit cu;
         cu.mutableRead().reset(-1);
-        Optional<OTSError> err = cu.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = cu.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (*err).issue();
         TESTA_ASSERT(err->message() == "read capacity unit must be positive.")
@@ -527,8 +527,8 @@ void CapacityUnit_validate(const string&)
     {
         CapacityUnit cu;
         cu.mutableWrite().reset(-1);
-        Optional<OTSError> err = cu.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = cu.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (*err).issue();
         TESTA_ASSERT(err->message() == "write capacity unit must be positive.")
@@ -545,8 +545,8 @@ void AttributeValue_none(const string&)
     TESTA_ASSERT(pp::prettyPrint(v) == "none")
         (v).issue();
     {
-        Optional<OTSError> err = v.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = v.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
             (v)(*err).issue();
         TESTA_ASSERT(err->message() == "value is required.")
@@ -635,8 +635,8 @@ void Attribute_validate(const string&)
 {
     {
         Attribute v("", AttributeValue::toInteger(1));
-        Optional<OTSError> err = v.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = v.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (v)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -646,8 +646,8 @@ void Attribute_validate(const string&)
     }
     {
         Attribute v("attr", AttributeValue());
-        Optional<OTSError> err = v.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = v.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (v)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -657,8 +657,8 @@ void Attribute_validate(const string&)
     }
     {
         Attribute v("attr", AttributeValue::toInteger(1), UtcTime::fromMsec(-1));
-        Optional<OTSError> err = v.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = v.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (v)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -685,8 +685,8 @@ void Row_validate(const string&)
 {
     Row row;
     {
-        Optional<OTSError> err = row.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = row.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (row)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -698,8 +698,8 @@ void Row_validate(const string&)
         PrimaryKeyColumn("pkey", PrimaryKeyValue::toInteger(1));
     row.mutableAttributes().append().mutableName() = "attr";
     {
-        Optional<OTSError> err = row.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = row.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (row)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -722,8 +722,8 @@ void TimeRange_validate(const string&)
 {
     {
         TimeRange tr(UtcTime::fromUsec(1), UtcTime::fromMsec(1));
-        Optional<OTSError> err = tr.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = tr.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (tr)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -733,8 +733,8 @@ void TimeRange_validate(const string&)
     }
     {
         TimeRange tr(UtcTime::fromMsec(1), UtcTime::fromUsec(1001));
-        Optional<OTSError> err = tr.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = tr.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (tr)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -744,8 +744,8 @@ void TimeRange_validate(const string&)
     }
     {
         TimeRange tr(UtcTime::fromMsec(2), UtcTime::fromMsec(1));
-        Optional<OTSError> err = tr.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = tr.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (tr)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -778,8 +778,8 @@ void Split_validate(const string&)
         s.mutableUpperBound().reset(new PrimaryKey());
         s.mutableUpperBound()->append() = PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(2));
         s.mutableUpperBound()->append() = PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(3));
-        Optional<OTSError> err = s.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = s.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (s)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -793,8 +793,8 @@ void Split_validate(const string&)
         s.mutableLowerBound()->append() = PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(1));
         s.mutableUpperBound().reset(new PrimaryKey());
         s.mutableUpperBound()->append() = PrimaryKeyColumn("pk1", PrimaryKeyValue::toInteger(2));
-        Optional<OTSError> err = s.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = s.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (s)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -808,8 +808,8 @@ void Split_validate(const string&)
         s.mutableLowerBound()->append() = PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(1));
         s.mutableUpperBound().reset(new PrimaryKey());
         s.mutableUpperBound()->append() = PrimaryKeyColumn("pk0", PrimaryKeyValue::toStr("a"));
-        Optional<OTSError> err = s.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = s.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (s)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -823,8 +823,8 @@ void Split_validate(const string&)
         s.mutableLowerBound()->append() = PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(1));
         s.mutableUpperBound().reset(new PrimaryKey());
         s.mutableUpperBound()->append() = PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(0));
-        Optional<OTSError> err = s.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = s.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (s)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -838,8 +838,8 @@ void Split_validate(const string&)
         s.mutableLowerBound()->append() = PrimaryKeyColumn("pk0", PrimaryKeyValue::toAutoIncrement());
         s.mutableUpperBound().reset(new PrimaryKey());
         s.mutableUpperBound()->append() = PrimaryKeyColumn("pk0", PrimaryKeyValue::toAutoIncrement());
-        Optional<OTSError> err = s.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = s.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (s)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -873,8 +873,8 @@ void CreateTableRequest_validate(const string&)
         req.mutableMeta().mutableSchema().append().mutableName() = "pk0";
         req.mutableMeta().mutableSchema().back().mutableType() = kPKT_String;
         req.mutableShardSplitPoints().append().append() = PrimaryKeyColumn("pk1", PrimaryKeyValue::toStr("a"));
-        Optional<OTSError> err = req.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = req.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (req)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -889,8 +889,8 @@ void CreateTableRequest_validate(const string&)
         req.mutableMeta().mutableSchema().back().mutableType() = kPKT_String;
         req.mutableOptions().mutableMaxVersions().reset(1);
         req.mutableShardSplitPoints().append().append() = PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(1));
-        Optional<OTSError> err = req.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = req.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (req)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -908,8 +908,8 @@ void CreateTableRequest_validate(const string&)
             PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(1));
         req.mutableShardSplitPoints().back().append() =
             PrimaryKeyColumn("pk1", PrimaryKeyValue::toInteger(2));
-        Optional<OTSError> err = req.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = req.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (req)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -925,8 +925,8 @@ void CreateTableRequest_validate(const string&)
         req.mutableOptions().mutableMaxVersions().reset(1);
         req.mutableShardSplitPoints().append().append() =
             PrimaryKeyColumn("pk0", PrimaryKeyValue::toInfMin());
-        Optional<OTSError> err = req.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = req.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (req)(*err).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -1037,8 +1037,8 @@ void QueryCriterion_validate(const string&)
     {
         PointQueryCriterion c = cri;
         c.mutableMaxVersions().reset(1);
-        Optional<OTSError> err = c.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = c.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (*err)(c).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -1049,8 +1049,8 @@ void QueryCriterion_validate(const string&)
     {
         PointQueryCriterion c = cri;
         c.mutableTable() = "test-table";
-        Optional<OTSError> err = c.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = c.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (*err)(c).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -1062,8 +1062,8 @@ void QueryCriterion_validate(const string&)
         PointQueryCriterion c = cri;
         c.mutableTable() = "test-table";
         c.mutableMaxVersions().reset(0);
-        Optional<OTSError> err = c.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = c.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (*err)(c).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -1076,8 +1076,8 @@ void QueryCriterion_validate(const string&)
         c.mutableTable() = "test-table";
         c.mutableMaxVersions().reset(1);
         c.mutableColumnsToGet().append() = "";
-        Optional<OTSError> err = c.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = c.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (*err)(c).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -1093,8 +1093,8 @@ void PointQueryCriterion_validate(const string&)
     PointQueryCriterion cri;
     cri.mutableTable() = "test-table";
     cri.mutableMaxVersions().reset(1);
-    Optional<OTSError> err = cri.validate();
-    TESTA_ASSERT(err.present()).issue();
+    std::optional<OTSError> err = cri.validate();
+    TESTA_ASSERT(err).issue();
     TESTA_ASSERT(err->httpStatus() == 400)
         (*err)(cri).issue();
     TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -1133,8 +1133,8 @@ void RangeQueryCriterion_validate(const string&)
             PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(2));
         cri.mutableExclusiveEnd().append() =
             PrimaryKeyColumn("pk1", PrimaryKeyValue::toInteger(2));
-        Optional<OTSError> err = cri.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = cri.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (*err)(cri).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -1150,8 +1150,8 @@ void RangeQueryCriterion_validate(const string&)
             PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(1));
         cri.mutableExclusiveEnd().append() =
             PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(0));
-        Optional<OTSError> err = cri.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = cri.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (*err)(cri).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -1168,8 +1168,8 @@ void RangeQueryCriterion_validate(const string&)
             PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(0));
         cri.mutableExclusiveEnd().append() =
             PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(1));
-        Optional<OTSError> err = cri.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = cri.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (*err)(cri).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")
@@ -1186,8 +1186,8 @@ void RangeQueryCriterion_validate(const string&)
         cri.mutableExclusiveEnd().append() =
             PrimaryKeyColumn("pk0", PrimaryKeyValue::toInteger(1));
         cri.mutableLimit().reset(0);
-        Optional<OTSError> err = cri.validate();
-        TESTA_ASSERT(err.present()).issue();
+        std::optional<OTSError> err = cri.validate();
+        TESTA_ASSERT(err).issue();
         TESTA_ASSERT(err->httpStatus() == 400)
             (*err)(cri).issue();
         TESTA_ASSERT(err->errorCode() == "OTSParameterInvalid")

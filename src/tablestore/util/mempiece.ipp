@@ -31,7 +31,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/util/metaprogramming.hpp"
-#include <tr1/type_traits>
+#include <type_traits>
 #include <cstring>
 
 namespace aliyun {
@@ -128,13 +128,13 @@ struct ToMemPiece<MutableMemPiece, void>
 template<>
 struct FromMemPiece<int64_t, void>
 {
-    Optional<std::string> operator()(int64_t&, const MemPiece&) const;
+    std::optional<std::string> operator()(int64_t&, const MemPiece&) const;
 };
 
 template<>
 struct FromMemPiece<std::string, void>
 {
-    Optional<std::string> operator()(std::string&, const MemPiece&) const;
+    std::optional<std::string> operator()(std::string&, const MemPiece&) const;
 };
 
 } // namspace impl

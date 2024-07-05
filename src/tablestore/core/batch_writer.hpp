@@ -36,9 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/core/types.hpp"
 #include "tablestore/core/error.hpp"
 #include "tablestore/util/threading.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/timestamp.hpp"
-#include <tr1/functional>
+#include <functional>
 
 namespace aliyun {
 namespace tablestore {
@@ -67,7 +67,7 @@ public:
     explicit BatchWriterConfig();
 
     void prettyPrint(std::string&) const;
-    util::Optional<OTSError> validate() const;
+    std::optional<OTSError> validate() const;
 
     int64_t maxConcurrency() const
     {
@@ -114,16 +114,16 @@ public:
         return mNapShrinkStep;
     }
 
-    typedef std::tr1::shared_ptr<util::Actor> ActorPtr;
+    typedef std::shared_ptr<util::Actor> ActorPtr;
     /**
      * Actors where user callbacks run.
      * 32 newly-created threads by default.
      */
-    const util::Optional<std::deque<ActorPtr> >& actors() const
+    const std::optional<std::deque<ActorPtr> >& actors() const
     {
         return mActors;
     }
-    util::Optional<std::deque<ActorPtr> >& mutableActors()
+    std::optional<std::deque<ActorPtr> >& mutableActors()
     {
         return mActors;
     }
@@ -134,7 +134,7 @@ private:
     util::Duration mRegularNap;
     util::Duration mMaxNap;
     util::Duration mNapShrinkStep;
-    util::Optional<std::deque<ActorPtr> > mActors;
+    std::optional<std::deque<ActorPtr> > mActors;
 };
 
 /**
@@ -149,7 +149,7 @@ class SyncBatchWriter
 public:
     virtual ~SyncBatchWriter() {}
 
-    static util::Optional<OTSError> create(
+    static std::optional<OTSError> create(
         SyncBatchWriter*&,
         AsyncClient&,
         const BatchWriterConfig&);
@@ -159,20 +159,20 @@ public:
      * When the row already exists, it will be overwritten if the row condition
      * in the request is ignore or expect-exist.
      */
-    virtual util::Optional<OTSError> putRow(
+    virtual std::optional<OTSError> putRow(
         PutRowResponse&, const PutRowRequest&) =0;
 
     /**
      * Updates a row.
      * It can be used either to modify an existent row or to insert a new row.
      */
-    virtual util::Optional<OTSError> updateRow(
+    virtual std::optional<OTSError> updateRow(
         UpdateRowResponse&, const UpdateRowRequest&) =0;
 
     /**
      * Deletes a row.
      */
-    virtual util::Optional<OTSError> deleteRow(
+    virtual std::optional<OTSError> deleteRow(
         DeleteRowResponse&, const DeleteRowRequest&) =0;
 };
 
@@ -188,7 +188,7 @@ class AsyncBatchWriter
 public:
     virtual ~AsyncBatchWriter() {}
 
-    static util::Optional<OTSError> create(
+    static std::optional<OTSError> create(
         AsyncBatchWriter*&,
         AsyncClient&,
         const BatchWriterConfig&);
@@ -203,8 +203,8 @@ public:
      */
     virtual void putRow(
         PutRowRequest&,
-        const std::tr1::function<void(
-            PutRowRequest&, util::Optional<OTSError>&, PutRowResponse&)>&) =0;
+        const std::function<void(
+            PutRowRequest&, std::optional<OTSError>&, PutRowResponse&)>&) =0;
 
     /**
      * Updates a row.
@@ -216,8 +216,8 @@ public:
      */
     virtual void updateRow(
         UpdateRowRequest&,
-        const std::tr1::function<void(
-            UpdateRowRequest&, util::Optional<OTSError>&, UpdateRowResponse&)>&) =0;
+        const std::function<void(
+            UpdateRowRequest&, std::optional<OTSError>&, UpdateRowResponse&)>&) =0;
 
     /**
      * Deletes a row.
@@ -228,8 +228,8 @@ public:
      */
     virtual void deleteRow(
         DeleteRowRequest&,
-        const std::tr1::function<void(
-            DeleteRowRequest&, util::Optional<OTSError>&, DeleteRowResponse&)>&) =0;
+        const std::function<void(
+            DeleteRowRequest&, std::optional<OTSError>&, DeleteRowResponse&)>&) =0;
 };
 
 } // namespace core

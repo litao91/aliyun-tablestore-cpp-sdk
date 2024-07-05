@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "bookmark_input_stream.hpp"
 #include "tablestore/core/error.hpp"
 #include "tablestore/util/mempiece.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include <memory>
 #include <deque>
 #include <stdint.h>
@@ -68,7 +68,7 @@ public:
      * if returns false, the last piece of the response is fed;
      * if any error occurs, returns it.
      */
-    util::Optional<OTSError> feed(RequireMore&, const util::MemPiece&);
+    std::optional<OTSError> feed(RequireMore&, const util::MemPiece&);
 
     std::deque<util::MemPiece>& mutableBody()
     {
@@ -91,7 +91,7 @@ public:
     }
 
 private:
-    util::Optional<OTSError> parse(RequireMore&);
+    std::optional<OTSError> parse(RequireMore&);
 
 private:
     util::Logger& mLogger;

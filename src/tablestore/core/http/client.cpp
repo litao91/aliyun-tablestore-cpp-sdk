@@ -40,13 +40,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/logger.hpp"
 #include "tablestore/util/logging.hpp"
 #include "tablestore/util/foreach.hpp"
-#include <tr1/memory>
-#include <tr1/functional>
+#include <memory>
+#include <functional>
 #include <deque>
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -93,7 +93,7 @@ private:
 
         MutableMemPiece mLastRespBuffer;
         ResponseCallback mRespCb;
-        auto_ptr<ResponseReader> mResponseReader;
+        unique_ptr<ResponseReader> mResponseReader;
         Connection* mConnection;
 
         explicit Context(Logger&, Actor&, boost::atomic<int64_t>& ongoing);
@@ -106,19 +106,19 @@ private:
     void connectionBorrowed(
         const shared_ptr<Context>&,
         Connection&,
-        const Optional<OTSError>&);
+        const std::optional<OTSError>&);
     util::MutableMemPiece requestSent(
         const shared_ptr<Context>&,
-        const Optional<OTSError>&);
+        const std::optional<OTSError>&);
     bool responseReceived(
         const shared_ptr<Context>&,
         int64_t readBytes,
-        const util::Optional<OTSError>&,
+        const std::optional<OTSError>&,
         util::MutableMemPiece*);
     Actor& assignActor(const Tracker&);
     void invokeCallback(
         const shared_ptr<Context>&,
-        Optional<OTSError>&);
+        std::optional<OTSError>&);
     void giveBackConnection(const shared_ptr<Context>&);
     void closeConnection(const shared_ptr<Context>&);
 
@@ -293,15 +293,15 @@ void ClientImpl::timeout(
     e.mutableMessage() = "Request timeout.";
     ctx->mActor.pushBack(
         bind(&ClientImpl::invokeCallback,
-            this, ctx, Optional<OTSError>(e)));
+            this, ctx, std::optional<OTSError>(e)));
 }
 
 void ClientImpl::connectionBorrowed(
     const shared_ptr<Context>& ctx,
     Connection& conn,
-    const Optional<OTSError>& err)
+    const std::optional<OTSError>& err)
 {
-    if (err.present()) {
+    if (err) {
         OTS_LOG_DEBUG(mLogger)
             ("Tracker", ctx->mTracker)
             ("Error", *err)
@@ -355,9 +355,9 @@ void ClientImpl::connectionBorrowed(
 
 util::MutableMemPiece ClientImpl::requestSent(
     const shared_ptr<Context>& ctx,
-    const Optional<OTSError>& err)
+    const std::optional<OTSError>& err)
 {
-    if (err.present()) {
+    if (err) {
         OTS_LOG_DEBUG(mLogger)
             ("Tracker", ctx->mTracker)
             ("Error", *err)
@@ -378,10 +378,10 @@ util::MutableMemPiece ClientImpl::requestSent(
 bool ClientImpl::responseReceived(
     const shared_ptr<Context>& ctx,
     int64_t readBytes,
-    const util::Optional<OTSError>& err,
+    const std::optional<OTSError>& err,
     MutableMemPiece* newPiece)
 {
-    if (err.present()) {
+    if (err) {
         OTS_LOG_DEBUG(mLogger)
             ("Tracker", ctx->mTracker)
             ("Error", *err)
@@ -403,8 +403,8 @@ bool ClientImpl::responseReceived(
         (ctx->mLastRespBuffer.length());
     MemPiece mp(ctx->mLastRespBuffer.begin(), readBytes);
     ResponseReader::RequireMore more = ResponseReader::STOP;
-    Optional<OTSError> e = ctx->mResponseReader->feed(more, mp);
-    if (e.present()) {
+    std::optional<OTSError> e = ctx->mResponseReader->feed(more, mp);
+    if (e) {
         OTS_LOG_DEBUG(mLogger)
             ("Tracker", ctx->mTracker)
             ("Error", *e)
@@ -418,7 +418,7 @@ bool ClientImpl::responseReceived(
             .what("HTTP: response finishes properly.");
         ctx->mActor.pushBack(
             bind(&ClientImpl::invokeCallback,
-                this, ctx, Optional<OTSError>()));
+                this, ctx, std::optional<OTSError>()));
         return false;
     } else {
         OTS_ASSERT(readBytes <= ctx->mLastRespBuffer.length())
@@ -462,7 +462,7 @@ void ClientImpl::closeConnection(const shared_ptr<Context>& ctx)
 
 void ClientImpl::invokeCallback(
     const shared_ptr<Context>& ctx,
-    Optional<OTSError>& err)
+    std::optional<OTSError>& err)
 {
     if (ctx->mAlreadyCallbacked.exchange(true, boost::memory_order_acq_rel)) {
         return;
@@ -472,7 +472,7 @@ void ClientImpl::invokeCallback(
         ctx->mTimer->cancel();
     }
 
-    if (err.present()) {
+    if (err) {
         OTS_LOG_DEBUG(mLogger)
             ("Tracker", ctx->mTracker)
             ("Error", *err)
@@ -495,11 +495,11 @@ void ClientImpl::invokeCallback(
             ("BytesOfHeaders", headers.size())
             ("Body", body)
             .what("HTTP: invoke callback");
-        Optional<OTSError> ex;
+        std::optional<OTSError> ex;
         if (httpStatus < 200 || httpStatus >= 300) {
             OTSError x;
             x.mutableHttpStatus() = httpStatus;
-            ex.reset(util::move(x));
+            ex.emplace(std::move(x));
         }
         ctx->mRespCb(ctx->mTracker, ex, headers, body);
     }

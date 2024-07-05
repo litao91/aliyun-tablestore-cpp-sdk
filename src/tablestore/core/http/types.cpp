@@ -30,7 +30,7 @@ Endpoint& Endpoint::operator=(const MoveHolder<Endpoint>& a)
 
 namespace {
 
-Optional<string> parseProtocol(Endpoint::Protocol& proto, const uint8_t*& b, const uint8_t* e)
+std::optional<string> parseProtocol(Endpoint::Protocol& proto, const uint8_t*& b, const uint8_t* e)
 {
     const uint8_t* c = b;
     for(; c < e && *c != ':'; ++c) {
@@ -41,45 +41,45 @@ Optional<string> parseProtocol(Endpoint::Protocol& proto, const uint8_t*& b, con
     } else if (p == MemPiece::from("https")) {
         proto = Endpoint::HTTPS;
     } else {
-        return Optional<string>(string("unsupported protocol: ") + pp::prettyPrint(p) + string("."));
+        return std::optional<string>(string("unsupported protocol: ") + pp::prettyPrint(p) + string("."));
     }
     if (c < e && *c == ':') {
         ++c;
     } else {
-        return Optional<string>(string("invalid syntax of endpoint."));
+        return std::optional<string>(string("invalid syntax of endpoint."));
     }
     for (int64_t i = 0; i < 2; ++i) {
         if (c < e && *c == '/') {
             ++c;
         } else {
-            return Optional<string>(string("invalid syntax of endpoint."));
+            return std::optional<string>(string("invalid syntax of endpoint."));
         }
     }
     b = c;
-    return Optional<string>();
+    return std::optional<string>();
 }
 
-Optional<string> parseHost(string& out, const uint8_t*& b, const uint8_t* e)
+std::optional<string> parseHost(string& out, const uint8_t*& b, const uint8_t* e)
 {
     const uint8_t* c = b;
     for(; c < e && *c != ':' && *c != '/'; ++c) {
     }
     MemPiece p(b, c - b);
     if (p.length() == 0) {
-        return Optional<string>(string("invalid syntax of endpoint."));
+        return std::optional<string>(string("invalid syntax of endpoint."));
     }
     out = p.to<string>();
     b = c;
-    return Optional<string>();
+    return std::optional<string>();
 }
 
-Optional<string> parsePort(string& out, const uint8_t*& b, const uint8_t* e)
+std::optional<string> parsePort(string& out, const uint8_t*& b, const uint8_t* e)
 {
     if (b == e) {
-        return Optional<string>();
+        return std::optional<string>();
     }
     if (*b != ':') {
-        return Optional<string>();
+        return std::optional<string>();
     }
     ++b;
     const uint8_t* c = b;
@@ -87,29 +87,29 @@ Optional<string> parsePort(string& out, const uint8_t*& b, const uint8_t* e)
     }
     MemPiece p(b, c - b);
     if (p.length() == 0) {
-        return Optional<string>(string("invalid syntax of endpoint."));
+        return std::optional<string>(string("invalid syntax of endpoint."));
     }
     out = p.to<string>();
     b = c;
-    return Optional<string>();
+    return std::optional<string>();
 }
 
-Optional<string> validateRootPath(const uint8_t* b, const uint8_t* e)
+std::optional<string> validateRootPath(const uint8_t* b, const uint8_t* e)
 {
     for(; b < e && *b == '/'; ++b) {
     }
     if (b < e) {
-        return Optional<string>(string("invalid syntax of endpoint."));
+        return std::optional<string>(string("invalid syntax of endpoint."));
     }
-    return Optional<string>();
+    return std::optional<string>();
 }
 
 } // namespace
 
-Optional<string> Endpoint::parse(Endpoint& out, const string& url)
+std::optional<string> Endpoint::parse(Endpoint& out, const string& url)
 {
     if (url.empty()) {
-        return Optional<string>(string("Endpoint must be nonempty."));
+        return std::optional<string>(string("Endpoint must be nonempty."));
     }
     const uint8_t* b = (uint8_t*) url.data();
     const uint8_t* e = b + url.size();
@@ -132,7 +132,7 @@ Optional<string> Endpoint::parse(Endpoint& out, const string& url)
     }
 
     TRY(validateRootPath(b, e));
-    return Optional<string>();
+    return std::optional<string>();
 }
 
 void Endpoint::prettyPrint(string& out) const

@@ -38,11 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/mempiece.hpp"
 #include "tablestore/util/foreach.hpp"
 #include "tablestore/util/try.hpp"
-#include <tr1/memory>
+#include <memory>
 #include <cstdio>
 
 using namespace std;
-using namespace std::tr1;
+
 using namespace aliyun::tablestore::util;
 
 #define PB com::aliyun::tablestore::protocol
@@ -128,7 +128,7 @@ void toTableMeta(PB::TableMeta& pb, const TableMeta& api)
         PB::PrimaryKeySchema& pkeySchema = *pb.add_primary_key();
         pkeySchema.set_name(schema[i].name());
         pkeySchema.set_type(toPrimaryKeyType(schema[i].type()));
-        if (schema[i].option().present()) {
+        if (schema[i].option()) {
             pkeySchema.set_option(toPrimaryKeyOption(*schema[i].option()));
         }
     }
@@ -153,10 +153,10 @@ void toTableMeta(TableMeta& api, const PB::TableMeta& pb)
 void toCapacityUnit(PB::ReservedThroughput& pb, const CapacityUnit& api)
 {
     PB::CapacityUnit& pbCu = *pb.mutable_capacity_unit();
-    if (api.read().present()) {
+    if (api.read()) {
         pbCu.set_read(*api.read());
     }
-    if (api.write().present()) {
+    if (api.write()) {
         pbCu.set_write(*api.write());
     }
 }
@@ -173,23 +173,23 @@ void toCapacityUnit(CapacityUnit& api, const PB::CapacityUnit& pb)
 
 void toTableOptionsWithoutTtl(PB::TableOptions& pb, const TableOptions& api)
 {
-    if (api.maxVersions().present()) {
+    if (api.maxVersions()) {
         pb.set_max_versions(*api.maxVersions());
     }
-    if (api.bloomFilterType().present()) {
+    if (api.bloomFilterType()) {
         pb.set_bloom_filter_type((PB::BloomFilterType) *api.bloomFilterType());
     }
-    if (api.blockSize().present()) {
+    if (api.blockSize()) {
         pb.set_block_size(*api.blockSize());
     }
-    if (api.maxTimeDeviation().present()) {
+    if (api.maxTimeDeviation()) {
         pb.set_deviation_cell_version_in_sec(api.maxTimeDeviation()->toSec());
     }
 }
 
 void toTableOptionsForCreateTable(PB::TableOptions& pb, const TableOptions& api)
 {
-    if (api.timeToLive().present()) {
+    if (api.timeToLive()) {
         pb.set_time_to_live(api.timeToLive()->toSec());
     } else {
         pb.set_time_to_live(-1);
@@ -199,7 +199,7 @@ void toTableOptionsForCreateTable(PB::TableOptions& pb, const TableOptions& api)
 
 void toTableOptionsForUpdateTable(PB::TableOptions& pb, const TableOptions& api)
 {
-    if (api.timeToLive().present()) {
+    if (api.timeToLive()) {
         pb.set_time_to_live(api.timeToLive()->toSec());
     }
     toTableOptionsWithoutTtl(pb, api);
@@ -392,21 +392,21 @@ string toFilter(StrPool& spool, const ColumnCondition& cc)
 }
 
 template<typename T>
-Optional<OTSError> parseBody(T& out, deque<MemPiece>& body)
+std::optional<OTSError> parseBody(T& out, deque<MemPiece>& body)
 {
     MemPoolZeroCopyInputStream is(body);
     bool ok = out.ParseFromZeroCopyStream(&is);
     if (!ok) {
         OTSError e(OTSError::kPredefined_CorruptedResponse);
         e.mutableMessage() = "Fail to parse protobuf in response.";
-        return Optional<OTSError>(util::move(e));
+        return std::optional<OTSError>(util::move(e));
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 } // namespace
 
-Optional<OTSError> deserialize(
+std::optional<OTSError> deserialize(
     OTSError& out,
     deque<MemPiece>& body)
 {
@@ -419,10 +419,10 @@ Optional<OTSError> deserialize(
         OTSError e(OTSError::kPredefined_CorruptedResponse);
         e.mutableMessage().clear();
         concat(e.mutableMessage(), body);
-        return Optional<OTSError>(util::move(e));
+        return std::optional<OTSError>(util::move(e));
     }
     toError(out, pb);
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 Serde<kApi_ListTable>::Serde(MemPool& mpool, StrPool& spool)
@@ -430,7 +430,7 @@ Serde<kApi_ListTable>::Serde(MemPool& mpool, StrPool& spool)
     mStrPool(spool)
 {}
 
-Optional<OTSError> Serde<kApi_ListTable>::serialize(
+std::optional<OTSError> Serde<kApi_ListTable>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -438,10 +438,10 @@ Optional<OTSError> Serde<kApi_ListTable>::serialize(
     req.SerializeToZeroCopyStream(&mOStream);
     moveAssign(body, mOStream.pieces());
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> Serde<kApi_ListTable>::deserialize(
+std::optional<OTSError> Serde<kApi_ListTable>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
@@ -452,7 +452,7 @@ Optional<OTSError> Serde<kApi_ListTable>::deserialize(
     for(int64_t i = 0; i < pb.table_names_size(); ++i) {
         tables.append() = pb.table_names(i);
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -461,14 +461,14 @@ Serde<kApi_CreateTable>::Serde(MemPool& mpool, StrPool& spool)
     mStrPool(spool)
 {}
 
-Optional<OTSError> Serde<kApi_CreateTable>::serialize(
+std::optional<OTSError> Serde<kApi_CreateTable>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
     PbRequest pb;
     deque<string*> buf;
     toTableMeta(*pb.mutable_table_meta(), api.meta());
-    if (api.options().reservedThroughput().present()) {
+    if (api.options().reservedThroughput()) {
         toCapacityUnit(*pb.mutable_reserved_throughput(), *api.options().reservedThroughput());
     }
     toTableOptionsForCreateTable(*pb.mutable_table_options(), api.options());
@@ -498,16 +498,16 @@ Optional<OTSError> Serde<kApi_CreateTable>::serialize(
     pb.SerializeToZeroCopyStream(&mOStream);
     giveBack(mStrPool, buf);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> Serde<kApi_CreateTable>::deserialize(
+std::optional<OTSError> Serde<kApi_CreateTable>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
     PbResponse pb;
     TRY(parseBody(pb, body));
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -516,7 +516,7 @@ Serde<kApi_DeleteTable>::Serde(MemPool& mpool, util::StrPool& spool)
     mStrPool(spool)
 {}
 
-Optional<OTSError> Serde<kApi_DeleteTable>::serialize(
+std::optional<OTSError> Serde<kApi_DeleteTable>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -525,10 +525,10 @@ Optional<OTSError> Serde<kApi_DeleteTable>::serialize(
 
     pb.SerializeToZeroCopyStream(&mOStream);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> Serde<kApi_DeleteTable>::deserialize(
+std::optional<OTSError> Serde<kApi_DeleteTable>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
@@ -538,10 +538,10 @@ Optional<OTSError> Serde<kApi_DeleteTable>::deserialize(
     if (!ok) {
         OTSError e(OTSError::kPredefined_CorruptedResponse);
         e.mutableMessage() = "Fail to parse protobuf in response.";
-        return Optional<OTSError>(util::move(e));
+        return std::optional<OTSError>(util::move(e));
     }
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -550,7 +550,7 @@ Serde<kApi_DescribeTable>::Serde(MemPool& mpool, util::StrPool& spool)
     mStrPool(spool)
 {}
 
-Optional<OTSError> Serde<kApi_DescribeTable>::serialize(
+std::optional<OTSError> Serde<kApi_DescribeTable>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -559,10 +559,10 @@ Optional<OTSError> Serde<kApi_DescribeTable>::serialize(
 
     pb.SerializeToZeroCopyStream(&mOStream);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> Serde<kApi_DescribeTable>::deserialize(
+std::optional<OTSError> Serde<kApi_DescribeTable>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
@@ -581,7 +581,7 @@ Optional<OTSError> Serde<kApi_DescribeTable>::deserialize(
         toCapacityUnit(
             cu,
             pb.reserved_throughput_details().capacity_unit());
-        api.mutableOptions().mutableReservedThroughput().reset(util::move(cu));
+        api.mutableOptions().mutableReservedThroughput().emplace(std::move(cu));
     }
 
     // 4. TableStatus
@@ -597,7 +597,7 @@ Optional<OTSError> Serde<kApi_DescribeTable>::deserialize(
             moveAssign(splits.append(), util::move(row.mutablePrimaryKey()));
         }
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -606,7 +606,7 @@ Serde<kApi_UpdateTable>::Serde(MemPool& mpool, util::StrPool& spool)
     mStrPool(spool)
 {}
 
-Optional<OTSError> Serde<kApi_UpdateTable>::serialize(
+std::optional<OTSError> Serde<kApi_UpdateTable>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -614,7 +614,7 @@ Optional<OTSError> Serde<kApi_UpdateTable>::serialize(
 
     pb.set_table_name(api.table());
 
-    if (api.options().reservedThroughput().present()) {
+    if (api.options().reservedThroughput()) {
         toCapacityUnit(
             *pb.mutable_reserved_throughput(),
             *api.options().reservedThroughput());
@@ -624,17 +624,17 @@ Optional<OTSError> Serde<kApi_UpdateTable>::serialize(
 
     pb.SerializeToZeroCopyStream(&mOStream);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> Serde<kApi_UpdateTable>::deserialize(
+std::optional<OTSError> Serde<kApi_UpdateTable>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
     PbResponse pb;
     TRY(parseBody(pb, body));
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -643,7 +643,7 @@ Serde<kApi_ComputeSplitsBySize>::Serde(MemPool& mpool, util::StrPool& spool)
     mStrPool(spool)
 {}
 
-Optional<OTSError> Serde<kApi_ComputeSplitsBySize>::serialize(
+std::optional<OTSError> Serde<kApi_ComputeSplitsBySize>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -654,7 +654,7 @@ Optional<OTSError> Serde<kApi_ComputeSplitsBySize>::serialize(
 
     pb.SerializeToZeroCopyStream(&mOStream);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 namespace {
@@ -674,7 +674,7 @@ void ComplementPrimaryKey(
 
 } // namespace
 
-Optional<OTSError> Serde<kApi_ComputeSplitsBySize>::deserialize(
+std::optional<OTSError> Serde<kApi_ComputeSplitsBySize>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
@@ -737,16 +737,16 @@ Optional<OTSError> Serde<kApi_ComputeSplitsBySize>::deserialize(
             if (repeat > 0) {
                 OTSError e(OTSError::kPredefined_CorruptedResponse);
                 e.mutableMessage() = "Locations length is incorrect.";
-                return Optional<OTSError>(util::move(e));
+                return std::optional<OTSError>(util::move(e));
             }
         }
         if (splitIdx != api.splits().size()) {
             OTSError e(OTSError::kPredefined_CorruptedResponse);
             e.mutableMessage() = "Locations length is incorrect.";
-            return Optional<OTSError>(util::move(e));
+            return std::optional<OTSError>(util::move(e));
         }
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -755,7 +755,7 @@ Serde<kApi_PutRow>::Serde(MemPool& mpool, util::StrPool& spool)
     mStrPool(spool)
 {}
 
-Optional<OTSError> Serde<kApi_PutRow>::serialize(
+std::optional<OTSError> Serde<kApi_PutRow>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -781,10 +781,10 @@ Optional<OTSError> Serde<kApi_PutRow>::serialize(
     pb.SerializeToZeroCopyStream(&mOStream);
     giveBack(mStrPool, buf);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> Serde<kApi_PutRow>::deserialize(
+std::optional<OTSError> Serde<kApi_PutRow>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
@@ -798,10 +798,10 @@ Optional<OTSError> Serde<kApi_PutRow>::deserialize(
     if (pb.has_row() && !pb.row().empty()) {
         Row row;
         TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
-        api.mutableRow().reset(util::move(row));
+        api.mutableRow().emplace(std::move(row));
     }
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -810,7 +810,7 @@ Serde<kApi_GetRow>::Serde(MemPool& mpool, util::StrPool& spool)
     mStrPool(spool)
 {}
 
-Optional<OTSError> Serde<kApi_GetRow>::serialize(
+std::optional<OTSError> Serde<kApi_GetRow>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -829,13 +829,13 @@ Optional<OTSError> Serde<kApi_GetRow>::serialize(
     for(int64_t i = 0, sz = columnsToGet.size(); i < sz; ++i) {
         pb.add_columns_to_get(columnsToGet[i]);
     }
-    if (queryCriterion.timeRange().present()) {
+    if (queryCriterion.timeRange()) {
         toTimeRange(*pb.mutable_time_range(), *queryCriterion.timeRange());
     }
-    if (queryCriterion.maxVersions().present()) {
+    if (queryCriterion.maxVersions()) {
         pb.set_max_versions(*queryCriterion.maxVersions());
     }
-    if (queryCriterion.cacheBlocks().present()) {
+    if (queryCriterion.cacheBlocks()) {
         pb.set_cache_blocks(*queryCriterion.cacheBlocks());
     }
     if (queryCriterion.filter().get() != NULL) {
@@ -845,10 +845,10 @@ Optional<OTSError> Serde<kApi_GetRow>::serialize(
     pb.SerializeToZeroCopyStream(&mOStream);
     giveBack(mStrPool, buf);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> Serde<kApi_GetRow>::deserialize(
+std::optional<OTSError> Serde<kApi_GetRow>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
@@ -862,10 +862,10 @@ Optional<OTSError> Serde<kApi_GetRow>::deserialize(
     if (!pb.row().empty()) {
         Row row;
         TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
-        api.mutableRow().reset(util::move(row));
+        api.mutableRow().emplace(std::move(row));
     }
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -874,7 +874,7 @@ Serde<kApi_GetRange>::Serde(MemPool& mpool, util::StrPool& spool)
     mStrPool(spool)
 {}
 
-Optional<OTSError> Serde<kApi_GetRange>::serialize(
+std::optional<OTSError> Serde<kApi_GetRange>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -890,16 +890,16 @@ Optional<OTSError> Serde<kApi_GetRange>::serialize(
         pb.add_columns_to_get(columnsToGet[i]);
     }
 
-    if (cri.timeRange().present()) {
+    if (cri.timeRange()) {
         toTimeRange(*pb.mutable_time_range(), *cri.timeRange());
     }
-    if (cri.maxVersions().present()) {
+    if (cri.maxVersions()) {
         pb.set_max_versions(*cri.maxVersions());
     }
-    if (cri.limit().present()) {
+    if (cri.limit()) {
         pb.set_limit(*cri.limit());
     }
-    if (cri.cacheBlocks().present()) {
+    if (cri.cacheBlocks()) {
         pb.set_cache_blocks(*cri.cacheBlocks());
     }
     if (cri.filter().get() != NULL) {
@@ -914,10 +914,10 @@ Optional<OTSError> Serde<kApi_GetRange>::serialize(
     pb.SerializeToZeroCopyStream(&mOStream);
     giveBack(mStrPool, buf);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> Serde<kApi_GetRange>::deserialize(
+std::optional<OTSError> Serde<kApi_GetRange>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
@@ -937,10 +937,10 @@ Optional<OTSError> Serde<kApi_GetRange>::deserialize(
         TRY(plainbuffer::readRow(
                 nextStart,
                 MemPiece::from(pb.next_start_primary_key())));
-        api.mutableNextStart().reset(util::move(nextStart.mutablePrimaryKey()));
+        api.mutableNextStart().emplace(std::move(nextStart.mutablePrimaryKey()));
     }
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -949,7 +949,7 @@ Serde<kApi_UpdateRow>::Serde(MemPool& mpool, util::StrPool& spool)
     mStrPool(spool)
 {}
 
-Optional<OTSError> Serde<kApi_UpdateRow>::serialize(
+std::optional<OTSError> Serde<kApi_UpdateRow>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -975,10 +975,10 @@ Optional<OTSError> Serde<kApi_UpdateRow>::serialize(
     pb.SerializeToZeroCopyStream(&mOStream);
     giveBack(mStrPool, buf);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> Serde<kApi_UpdateRow>::deserialize(
+std::optional<OTSError> Serde<kApi_UpdateRow>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
@@ -992,10 +992,10 @@ Optional<OTSError> Serde<kApi_UpdateRow>::deserialize(
     if (pb.has_row() && !pb.row().empty()) {
         Row row;
         TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
-        api.mutableRow().reset(util::move(row));
+        api.mutableRow().emplace(std::move(row));
     }
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -1004,7 +1004,7 @@ Serde<kApi_DeleteRow>::Serde(MemPool& mpool, util::StrPool& spool)
     mStrPool(spool)
 {}
 
-Optional<OTSError> Serde<kApi_DeleteRow>::serialize(
+std::optional<OTSError> Serde<kApi_DeleteRow>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -1030,10 +1030,10 @@ Optional<OTSError> Serde<kApi_DeleteRow>::serialize(
     pb.SerializeToZeroCopyStream(&mOStream);
     giveBack(mStrPool, buf);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
-Optional<OTSError> Serde<kApi_DeleteRow>::deserialize(
+std::optional<OTSError> Serde<kApi_DeleteRow>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
@@ -1047,10 +1047,10 @@ Optional<OTSError> Serde<kApi_DeleteRow>::deserialize(
     if (pb.has_row() && !pb.row().empty()) {
         Row row;
         TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
-        api.mutableRow().reset(util::move(row));
+        api.mutableRow().emplace(std::move(row));
     }
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -1060,7 +1060,7 @@ Serde<kApi_BatchGetRow>::Serde(MemPool& mpool, util::StrPool& spool)
     mRequest(NULL)
 {}
 
-Optional<OTSError> Serde<kApi_BatchGetRow>::serialize(
+std::optional<OTSError> Serde<kApi_BatchGetRow>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -1083,13 +1083,13 @@ Optional<OTSError> Serde<kApi_BatchGetRow>::serialize(
                 table.add_columns_to_get(criterion.columnsToGet()[j]);
             }
         }
-        if (criterion.timeRange().present()) {
+        if (criterion.timeRange()) {
             toTimeRange(*table.mutable_time_range(), *criterion.timeRange());
         }
-        if (criterion.maxVersions().present()) {
+        if (criterion.maxVersions()) {
             table.set_max_versions(*criterion.maxVersions());
         }
-        if (criterion.cacheBlocks().present()) {
+        if (criterion.cacheBlocks()) {
             table.set_cache_blocks(*criterion.cacheBlocks());
         }
     }
@@ -1097,22 +1097,22 @@ Optional<OTSError> Serde<kApi_BatchGetRow>::serialize(
     pb.SerializeToZeroCopyStream(&mOStream);
     giveBack(mStrPool, buf);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 namespace {
 
 void mergeConsumedCapacity(CapacityUnit& result, const CapacityUnit& in)
 {
-    if (in.read().present()) {
-        if (result.read().present()) {
+    if (in.read()) {
+        if (result.read()) {
             *result.mutableRead() += *in.read();
         } else {
             result.mutableRead() = in.read();
         }
     }
-    if (in.write().present()) {
-        if (result.write().present()) {
+    if (in.write()) {
+        if (result.write()) {
             *result.mutableWrite() += *in.write();
         } else {
             result.mutableWrite() = in.write();
@@ -1122,7 +1122,7 @@ void mergeConsumedCapacity(CapacityUnit& result, const CapacityUnit& in)
 
 } // namespace
 
-Optional<OTSError> Serde<kApi_BatchGetRow>::deserialize(
+std::optional<OTSError> Serde<kApi_BatchGetRow>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
@@ -1133,7 +1133,7 @@ Optional<OTSError> Serde<kApi_BatchGetRow>::deserialize(
         const PB::TableInBatchGetRowResponse& pbTable = pb.tables(i);
         for (int32_t j = 0; j < pbTable.rows_size(); ++j) {
             const PB::RowInBatchGetRowResponse& pbRow = pbTable.rows(j);
-            Result<Optional<Row>, OTSError>& row =
+            Result<std::optional<Row>, OTSError>& row =
                 api.mutableResults().append().mutableGet();
             if (pbRow.is_ok()) {
                 CapacityUnit consumedCapacity;
@@ -1146,7 +1146,7 @@ Optional<OTSError> Serde<kApi_BatchGetRow>::deserialize(
                 if (!pbRow.row().empty()) {
                     Row r;
                     TRY(plainbuffer::readRow(r, MemPiece::from(pbRow.row())));
-                    row.mutableOkValue().reset(util::move(r));
+                    row.mutableOkValue().emplace(std::move(r));
                 }
             } else {
                 OTSError error;
@@ -1171,7 +1171,7 @@ Optional<OTSError> Serde<kApi_BatchGetRow>::deserialize(
         }
     }
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 
@@ -1181,7 +1181,7 @@ Serde<kApi_BatchWriteRow>::Serde(MemPool& mpool, util::StrPool& spool)
     mRequest(NULL)
 {}
 
-Optional<OTSError> Serde<kApi_BatchWriteRow>::serialize(
+std::optional<OTSError> Serde<kApi_BatchWriteRow>::serialize(
     deque<MemPiece>& body,
     const ApiRequest& api)
 {
@@ -1283,7 +1283,7 @@ Optional<OTSError> Serde<kApi_BatchWriteRow>::serialize(
     pb.SerializeToZeroCopyStream(&mOStream);
     giveBack(mStrPool, buf);
     moveAssign(body, mOStream.pieces());
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 namespace {
@@ -1300,12 +1300,12 @@ void to(
 
         if (pbResponseRow.has_row() && !pbResponseRow.row().empty()) {
             Row row;
-            Optional<OTSError> err =
+            std::optional<OTSError> err =
                 plainbuffer::readRow(row, MemPiece::from(pbResponseRow.row()));
-            if (err.present()) {
+            if (err) {
                 result.mutableGet().mutableErrValue() = util::move(*err);
             } else {
-                result.mutableGet().mutableOkValue().reset(util::move(row));
+                result.mutableGet().mutableOkValue().emplace(std::move(row));
             }
         }
     } else {
@@ -1317,7 +1317,7 @@ void to(
 
 } // namespace
 
-Optional<OTSError> Serde<kApi_BatchWriteRow>::deserialize(
+std::optional<OTSError> Serde<kApi_BatchWriteRow>::deserialize(
     ApiResponse& api,
     deque<MemPiece>& body)
 {
@@ -1327,7 +1327,7 @@ Optional<OTSError> Serde<kApi_BatchWriteRow>::deserialize(
     if (static_cast<int64_t>(mIndices.size()) != pb.tables_size()) {
         OTSError err(OTSError::kPredefined_CorruptedResponse);
         err.mutableMessage() = "Invalid response";
-        return Optional<OTSError>(util::move(err));
+        return std::optional<OTSError>(util::move(err));
     }
 
     for(int64_t i = 0, sz = mRequest->puts().size(); i < sz; ++i) {
@@ -1349,7 +1349,7 @@ Optional<OTSError> Serde<kApi_BatchWriteRow>::deserialize(
         if (it == mIndices.end()) {
             OTSError err(OTSError::kPredefined_CorruptedResponse);
             err.mutableMessage() = "Invalid response";
-            return Optional<OTSError>(util::move(err));
+            return std::optional<OTSError>(util::move(err));
         }
         const Index& idxes = it->second;
         if (idxes.mPuts.size() + idxes.mUpdates.size() + idxes.mDeletes.size()
@@ -1357,7 +1357,7 @@ Optional<OTSError> Serde<kApi_BatchWriteRow>::deserialize(
         {
             OTSError err(OTSError::kPredefined_CorruptedResponse);
             err.mutableMessage() = "Invalid response";
-            return Optional<OTSError>(util::move(err));
+            return std::optional<OTSError>(util::move(err));
         }
         int64_t pbIdx = 0;
         FOREACH_ITER(it, idxes.mPuts) {
@@ -1386,7 +1386,7 @@ Optional<OTSError> Serde<kApi_BatchWriteRow>::deserialize(
         }
     }
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 } // namespace impl

@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TABLESTORE_UTIL_METAPROGRAMMING_HPP
 
 #if __cplusplus < 201103L
-#include <tr1/type_traits>
+#include <type_traits>
 #include <stdint.h>
 #else
 #include <type_traits>
@@ -108,21 +108,21 @@ struct IsInteger<uint64_t>
 
 template<class T>
 #if __cplusplus < 201103L
-struct IsScalar: public std::tr1::is_scalar<T> {};
+struct IsScalar: public std::is_scalar<T> {};
 #else
 struct IsScalar: public std::is_scalar<T> {};
 #endif
 
 template<class T>
 #if __cplusplus < 201103L
-struct IsSigned: public std::tr1::is_signed<T> {};
+struct IsSigned: public std::is_signed<T> {};
 #else
 struct IsSigned: public std::is_signed<T> {};
 #endif
 
 template<class T>
 #if __cplusplus < 201103L
-struct IsUnsigned: public std::tr1::is_unsigned<T> {};
+struct IsUnsigned: public std::is_unsigned<T> {};
 #else
 struct IsUnsigned: public std::is_unsigned<T> {};
 #endif
@@ -132,11 +132,11 @@ template<class T>
 struct IsTrivial
 {
     static const bool value =
-        std::tr1::is_scalar<T>::value
-        || (std::tr1::has_trivial_constructor<T>::value
-            && std::tr1::has_trivial_copy<T>::value
-            && std::tr1::has_trivial_assign<T>::value
-            && std::tr1::has_trivial_destructor<T>::value);
+        std::is_scalar<T>::value
+        || (std::has_trivial_constructor<T>::value
+            && std::has_trivial_copy<T>::value
+            && std::has_trivial_assign<T>::value
+            && std::has_trivial_destructor<T>::value);
 };
 #else
 struct IsTrivial: public std::is_trivial<T> {};
@@ -178,14 +178,14 @@ struct MakeUnsigned
 
 template<class T0, class T1>
 #if __cplusplus < 201103L
-struct IsSame: public std::tr1::is_same<T0, T1> {};
+struct IsSame: public std::is_same<T0, T1> {};
 #else
 struct IsSame: public std::is_same<T0, T1> {};
 #endif
 
 template<class T>
 #if __cplusplus < 201103L
-struct IsFloatingPoint: public std::tr1::is_floating_point<T> {};
+struct IsFloatingPoint: public std::is_floating_point<T> {};
 #else
 struct IsFloatingPoint: public std::is_floating_point<T> {};
 #endif
@@ -194,8 +194,8 @@ template<class T>
 struct RemoveCvref
 {
 #if __cplusplus < 201103L
-    typedef typename std::tr1::remove_cv<
-        typename std::tr1::remove_reference<T>::type>::type Type;
+    typedef typename std::remove_cv<
+        typename std::remove_reference<T>::type>::type Type;
 #else
     typedef typename std::remove_cv<
         typename std::remove_reference<T>::type>::type Type;
@@ -204,7 +204,7 @@ struct RemoveCvref
 
 template<class T>
 #if __cplusplus < 201103L
-struct IsReference: public std::tr1::is_reference<T> {};
+struct IsReference: public std::is_reference<T> {};
 #else
 struct IsReference: public std::is_reference<T> {};
 #endif
@@ -212,7 +212,7 @@ struct IsReference: public std::is_reference<T> {};
 template<class T>
 struct RemoveRef {
 #if __cplusplus < 201103L
-    typedef typename std::tr1::remove_reference<T>::type Type;
+    typedef typename std::remove_reference<T>::type Type;
 #else
     typedef typename std::remove_reference<T>::type Type;
 #endif

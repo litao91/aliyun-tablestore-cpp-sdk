@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/core/client.hpp"
 #include "tablestore/util/threading.hpp"
-#include <tr1/functional>
-#include <tr1/memory>
+#include <functional>
+#include <memory>
 #include <string>
 #include <stdint.h>
 
@@ -47,23 +47,23 @@ class MockAsyncClient: public AsyncClient
 {
 private:
     util::Logger& mLogger;
-    std::deque<std::tr1::shared_ptr<util::Actor> > mActor;
-    std::tr1::shared_ptr<RetryStrategy> mRetryStrategy;
+    std::deque<std::shared_ptr<util::Actor> > mActor;
+    std::shared_ptr<RetryStrategy> mRetryStrategy;
 
 public:
     explicit MockAsyncClient(util::Logger&);
     ~MockAsyncClient();
 
     util::Logger& mutableLogger();
-    const std::deque<std::tr1::shared_ptr<util::Actor> >& actors() const;
+    const std::deque<std::shared_ptr<util::Actor> >& actors() const;
     const RetryStrategy& retryStrategy() const;
-    std::tr1::shared_ptr<RetryStrategy>& mutableRetryStrategy();
+    std::shared_ptr<RetryStrategy>& mutableRetryStrategy();
 
 #define DEF_ACTION(api, upcase) \
     private:\
-    typedef std::tr1::function<void(\
-        upcase##Request&, util::Optional<OTSError>&, upcase##Response&)> upcase##Callback;\
-    typedef std::tr1::function<void(upcase##Request&, const upcase##Callback&)> upcase##Action;\
+    typedef std::function<void(\
+        upcase##Request&, std::optional<OTSError>&, upcase##Response&)> upcase##Callback;\
+    typedef std::function<void(upcase##Request&, const upcase##Callback&)> upcase##Action;\
     upcase##Action m##upcase##Action;\
     public:\
     upcase##Action& mutable##upcase() {return m##upcase##Action;}\
@@ -94,26 +94,26 @@ class MockSyncClient: public SyncClient
 {
 private:
     util::Logger& mLogger;
-    std::deque<std::tr1::shared_ptr<util::Actor> > mActor;
-    std::tr1::shared_ptr<RetryStrategy> mRetryStrategy;
+    std::deque<std::shared_ptr<util::Actor> > mActor;
+    std::shared_ptr<RetryStrategy> mRetryStrategy;
 
 public:
     explicit MockSyncClient(util::Logger&);
     ~MockSyncClient();
 
     util::Logger& mutableLogger();
-    const std::deque<std::tr1::shared_ptr<util::Actor> >& actors() const;
+    const std::deque<std::shared_ptr<util::Actor> >& actors() const;
     const RetryStrategy& retryStrategy() const;
-    std::tr1::shared_ptr<RetryStrategy>& mutableRetryStrategy();
+    std::shared_ptr<RetryStrategy>& mutableRetryStrategy();
 
 #define DEF_ACTION(api, upcase) \
     private:\
-    typedef std::tr1::function<util::Optional<OTSError>( \
+    typedef std::function<std::optional<OTSError>( \
         upcase##Response&, const upcase##Request&)> upcase##Action; \
     upcase##Action m##upcase##Action;\
     public:\
     upcase##Action& mutable##upcase() {return m##upcase##Action;}\
-    util::Optional<OTSError> api(upcase##Response& resp, const upcase##Request& req)   \
+    std::optional<OTSError> api(upcase##Response& resp, const upcase##Request& req)   \
     {\
         OTS_ASSERT(m##upcase##Action);\
         return m##upcase##Action(resp, req);\

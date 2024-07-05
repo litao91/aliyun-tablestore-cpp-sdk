@@ -38,11 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/core/types.hpp"
 #include "tablestore/util/random.hpp"
 #include "tablestore/util/security.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/mempiece.hpp"
 #include "tablestore/util/foreach.hpp"
 #include "testa/testa.hpp"
-#include <tr1/functional>
+#include <functional>
 #include <iostream>
 #include <deque>
 #include <string>
@@ -52,8 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -78,7 +78,7 @@ TESTA_DEF_JUNIT_LIKE1(Crc8);
 namespace {
 void Crc8_U32(const string&)
 {
-    auto_ptr<Random> rng(random::newDefault(0));
+    unique_ptr<Random> rng(random::newDefault(0));
     for(int i = 0; i < 10000; ++i) {
         uint32_t in = random::nextInt(*rng, numeric_limits<uint32_t>::max());
         uint8_t oracle = PlainBufferCrc8::CrcInt32(0, in);
@@ -106,7 +106,7 @@ uint64_t randomU64(Random& rng)
 
 void Crc8_U64(const string&)
 {
-    auto_ptr<Random> rng(random::newDefault(0));
+    unique_ptr<Random> rng(random::newDefault(0));
     for(int i = 0; i < 10000; ++i) {
         uint64_t in = randomU64(*rng);
         uint8_t oracle = PlainBufferCrc8::CrcInt64(0, in);
@@ -137,7 +137,7 @@ void randomStr(Random& rng, string& out, const string& alphabet, char terminator
 
 void Crc8_Str(const string&)
 {
-    auto_ptr<Random> rng(random::newDefault());
+    unique_ptr<Random> rng(random::newDefault());
     cout << "seed: " << rng->seed() << endl;
     for(int64_t i = 0; i < 10000; ++i) {
         string in;
@@ -290,7 +290,7 @@ void to(RowPutChange& out, const Row& in)
 
 void PlainBuffer_Deserialize_RandomRow(const string&)
 {
-    auto_ptr<Random> rng(random::newDefault());
+    unique_ptr<Random> rng(random::newDefault());
     cout << "seed: " << rng->seed() << endl;
     for(int64_t repeat = 10000; repeat > 0; --repeat) {
         Row oracle;
@@ -301,9 +301,9 @@ void PlainBuffer_Deserialize_RandomRow(const string&)
         string buf = PlainBufferBuilder::SerializeForRow(chg);
 
         Row trial;
-        Optional<OTSError> err = plainbuffer::readRow(trial, MemPiece::from(buf));
+        std::optional<OTSError> err = plainbuffer::readRow(trial, MemPiece::from(buf));
         (void) err;
-        TESTA_ASSERT(!err.present())
+        TESTA_ASSERT(!err)
             (*err)
             (oracle).issue();
         TESTA_ASSERT(trial == oracle)
@@ -322,8 +322,8 @@ void PlainBuffer_Deserialize_Uint8(const string&)
     const uint8_t* b = buf;
     const uint8_t* e = b + sizeof(buf);
     uint8_t res = 0;
-    Optional<OTSError> err = plainbuffer::impl::readUint8(res, b, e);
-    TESTA_ASSERT(!err.present())(*err).issue();
+    std::optional<OTSError> err = plainbuffer::impl::readUint8(res, b, e);
+    TESTA_ASSERT(!err)(*err).issue();
     TESTA_ASSERT(res == 0x1)(res).issue();
     TESTA_ASSERT(b == e)
         (reinterpret_cast<uintptr_t>(b))
@@ -340,8 +340,8 @@ void PlainBuffer_Deserialize_Uint8_Error(const string&)
     const uint8_t* b = buf;
     const uint8_t* e = b + sizeof(buf);
     uint8_t res = 0;
-    Optional<OTSError> err = plainbuffer::impl::readUint8(res, b, e);
-    TESTA_ASSERT(err.present()).issue();
+    std::optional<OTSError> err = plainbuffer::impl::readUint8(res, b, e);
+    TESTA_ASSERT(err).issue();
 }
 } // namespace
 TESTA_DEF_JUNIT_LIKE1(PlainBuffer_Deserialize_Uint8_Error);
@@ -353,8 +353,8 @@ void PlainBuffer_Deserialize_Uint32(const string&)
     const uint8_t* b = buf;
     const uint8_t* e = b + sizeof(buf);
     uint32_t res = 0;
-    Optional<OTSError> err = plainbuffer::impl::readUint32(res, b, e);
-    TESTA_ASSERT(!err.present())(*err).issue();
+    std::optional<OTSError> err = plainbuffer::impl::readUint32(res, b, e);
+    TESTA_ASSERT(!err)(*err).issue();
     TESTA_ASSERT(res == 0x04030201)(res).issue();
     TESTA_ASSERT(b == e)
         (reinterpret_cast<uintptr_t>(b))
@@ -371,8 +371,8 @@ void PlainBuffer_Deserialize_Uint32_Error(const string&)
     const uint8_t* b = buf;
     const uint8_t* e = b + sizeof(buf);
     uint32_t res = 0;
-    Optional<OTSError> err = plainbuffer::impl::readUint32(res, b, e);
-    TESTA_ASSERT(err.present()).issue();
+    std::optional<OTSError> err = plainbuffer::impl::readUint32(res, b, e);
+    TESTA_ASSERT(err).issue();
 }
 } // namespace
 TESTA_DEF_JUNIT_LIKE1(PlainBuffer_Deserialize_Uint32_Error);
@@ -384,8 +384,8 @@ void PlainBuffer_Deserialize_Uint64(const string&)
     const uint8_t* b = buf;
     const uint8_t* e = b + sizeof(buf);
     uint64_t res = 0;
-    Optional<OTSError> err = plainbuffer::impl::readUint64(res, b, e);
-    TESTA_ASSERT(!err.present())(*err).issue();
+    std::optional<OTSError> err = plainbuffer::impl::readUint64(res, b, e);
+    TESTA_ASSERT(!err)(*err).issue();
     TESTA_ASSERT(res == 0x0807060504030201)(res).issue();
     TESTA_ASSERT(b == e)
         (reinterpret_cast<uintptr_t>(b))
@@ -402,8 +402,8 @@ void PlainBuffer_Deserialize_Uint64_Error(const string&)
     const uint8_t* b = buf;
     const uint8_t* e = b + sizeof(buf);
     uint64_t res = 0;
-    Optional<OTSError> err = plainbuffer::impl::readUint64(res, b, e);
-    TESTA_ASSERT(err.present()).issue();
+    std::optional<OTSError> err = plainbuffer::impl::readUint64(res, b, e);
+    TESTA_ASSERT(err).issue();
 }
 } // namespace
 TESTA_DEF_JUNIT_LIKE1(PlainBuffer_Deserialize_Uint64_Error);
@@ -414,8 +414,8 @@ void PlainBuffer_Deserialize_Header(const string&)
     const uint8_t buf[] = {0x75, 0, 0, 0};
     const uint8_t* b = buf;
     const uint8_t* e = b + sizeof(buf);
-    Optional<OTSError> err = plainbuffer::impl::readHeader(b, e);
-    TESTA_ASSERT(!err.present())(*err).issue();
+    std::optional<OTSError> err = plainbuffer::impl::readHeader(b, e);
+    TESTA_ASSERT(!err)(*err).issue();
     TESTA_ASSERT(b == e)
         (reinterpret_cast<uintptr_t>(b))
         (reinterpret_cast<uintptr_t>(e))
@@ -430,8 +430,8 @@ void PlainBuffer_Deserialize_Header_Error(const string&)
     const uint8_t buf[] = {0x75, 0x1, 0x2, 0x3};
     const uint8_t* b = buf;
     const uint8_t* e = b + sizeof(buf);
-    Optional<OTSError> err = plainbuffer::impl::readHeader(b, e);
-    TESTA_ASSERT(err.present()).issue();
+    std::optional<OTSError> err = plainbuffer::impl::readHeader(b, e);
+    TESTA_ASSERT(err).issue();
 }
 } // namespace
 TESTA_DEF_JUNIT_LIKE1(PlainBuffer_Deserialize_Header_Error);
@@ -439,7 +439,7 @@ TESTA_DEF_JUNIT_LIKE1(PlainBuffer_Deserialize_Header_Error);
 namespace {
 void PlainBuffer_Serialize_RandomAttributeValue(const string&)
 {
-    auto_ptr<Random> rng(random::newDefault());
+    unique_ptr<Random> rng(random::newDefault());
     cout << "seed: " << rng->seed() << endl;
     for(int64_t repeat = 10000; repeat > 0; --repeat) {
         AttributeValue val;
@@ -461,7 +461,7 @@ TESTA_DEF_JUNIT_LIKE1(PlainBuffer_Serialize_RandomAttributeValue);
 namespace {
 void PlainBuffer_Serialize_RandomPrimaryKeyValue(const string&)
 {
-    auto_ptr<Random> rng(random::newDefault());
+    unique_ptr<Random> rng(random::newDefault());
     cout << "seed: " << rng->seed() << endl;
     for(int64_t repeat = 10000; repeat > 0; --repeat) {
         PrimaryKeyValue val;
@@ -570,7 +570,7 @@ void shrink(const Row& row, const function<bool(const Row&)>& test)
 
 void PlainBuffer_Serialize_RandomRowPutChange(const string&)
 {
-    auto_ptr<Random> rng(random::newDefault());
+    unique_ptr<Random> rng(random::newDefault());
     cout << "seed: " << rng->seed() << endl;
     for(int64_t repeat = 10000; repeat > 0; --repeat) {
         Row row;
@@ -609,7 +609,7 @@ bool testRowDeleteChange(const PrimaryKey& pkey)
 
 void PlainBuffer_Serialize_RandomRowDeleteChange(const string&)
 {
-    auto_ptr<Random> rng(random::newDefault());
+    unique_ptr<Random> rng(random::newDefault());
     cout << "seed: " << rng->seed() << endl;
     for(int64_t repeat = 10000; repeat > 0; --repeat) {
         PrimaryKey pkey;
@@ -645,7 +645,7 @@ void randomPutCell(Random& rng, RowUpdateChange::Update& out)
     randomName(rng, out.mutableAttrName());
     AttributeValue val;
     randomAttrValue(rng, val);
-    out.mutableAttrValue().reset(util::move(val));
+    out.mutableAttrValue().emplace(std::move(val));
     if (random::nextInt(rng, 2) == 0) {
         int64_t tm = random::nextInt(rng, 987654321);
         out.mutableTimestamp().reset(UtcTime::fromMsec(tm));
@@ -745,7 +745,7 @@ void shrink(
 
 void PlainBuffer_Serialize_RandomRowUpdateChange(const string&)
 {
-    auto_ptr<Random> rng(random::newDefault());
+    unique_ptr<Random> rng(random::newDefault());
     cout << "seed: " << rng->seed() << endl;
     for(int64_t repeat = 10000; repeat > 0; --repeat) {
         RowUpdateChange chg;
@@ -762,7 +762,7 @@ TESTA_DEF_JUNIT_LIKE1(PlainBuffer_Serialize_RandomRowUpdateChange);
 namespace {
 void PlainBuffer_Serialize_RandomPrimaryKey(const string&)
 {
-    auto_ptr<Random> rng(random::newDefault());
+    unique_ptr<Random> rng(random::newDefault());
     cout << "seed: " << rng->seed() << endl;
     for(int64_t repeat = 10000; repeat > 0; --repeat) {
         PrimaryKey pk;

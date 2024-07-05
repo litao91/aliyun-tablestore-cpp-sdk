@@ -36,13 +36,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/core/types.hpp"
 #include "tablestore/util/mempiece.hpp"
 #include "tablestore/util/timestamp.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/move.hpp"
 #include "tablestore/util/mempool.hpp"
 #include "tablestore/util/logger.hpp"
 #include "tablestore/util/threading.hpp"
-#include <tr1/functional>
-#include <tr1/memory>
+#include <functional>
+#include <memory>
 #include <map>
 #include <string>
 #include <stdint.h>
@@ -58,13 +58,13 @@ typedef std::map<
 typedef std::map<
     util::MemPiece, util::MemPiece,
     util::QuasiLexicographicLess<util::MemPiece> > InplaceHeaders;
-typedef std::tr1::function<
+typedef std::function<
     void(const Tracker&,
-        util::Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         InplaceHeaders& respHeaders,
         std::deque<util::MemPiece>& respBody)
     > ResponseCallback;
-typedef std::tr1::function<void()> TimeoutCallback;
+typedef std::function<void()> TimeoutCallback;
 
 
 struct Endpoint
@@ -79,7 +79,7 @@ struct Endpoint
     explicit Endpoint(const util::MoveHolder<Endpoint>&);
     Endpoint& operator=(const util::MoveHolder<Endpoint>&);
 
-    static util::Optional<std::string> parse(Endpoint&, const std::string&);
+    static std::optional<std::string> parse(Endpoint&, const std::string&);
 
     void prettyPrint(std::string&) const;
 

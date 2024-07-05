@@ -122,7 +122,7 @@ int32_t PlainBufferBuilder::ComputeColumnSize(const Attribute& column)
     size += 1 + LITTLE_ENDIAN_32_SIZE;  // TAG_CELL_NAME + length
     size += static_cast<int32_t>(column.name().size());
     size += ComputeColumnValueSize(column.value());
-    if (column.timestamp().present()) {
+    if (column.timestamp()) {
         size += 1 + LITTLE_ENDIAN_64_SIZE;  // TAG_CELL_TIMESTAMP + ts size
     }
     size += 2;  // TAG_CELL_CHECKSUM + checksum
@@ -139,14 +139,14 @@ int32_t PlainBufferBuilder::ComputeColumnSize(
     switch(update.type()) {
     case RowUpdateChange::Update::kPut:
         size += ComputeColumnValueSize(*update.attrValue());
-        if (update.timestamp().present()) {
+        if (update.timestamp()) {
             size += 1; // TAG_CELL_TIMESTAMP
             size += LITTLE_ENDIAN_64_SIZE; // ts
         }
         break;
     case RowUpdateChange::Update::kDelete:
         size += 1 + LITTLE_ENDIAN_32_SIZE + 1;  // value placeholder
-        if (update.timestamp().present()) {
+        if (update.timestamp()) {
             size += 1 + LITTLE_ENDIAN_64_SIZE;  // TAG_CELL_TIMESTAMP + ts size
         }
         size += 2;  // TAG_CELL_TYPE + type

@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lockfree/queue.hpp>
 
 using namespace std;
-using namespace std::tr1;
 
 namespace pp {
 namespace impl {

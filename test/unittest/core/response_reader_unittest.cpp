@@ -36,13 +36,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/move.hpp"
 #include "tablestore/util/prettyprint.hpp"
 #include "testa/testa.hpp"
-#include <tr1/tuple>
+#include <tuple>
 #include <deque>
 #include <string>
 #include <memory>
 
 using namespace std;
-using namespace std::tr1;
+
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -51,15 +51,15 @@ namespace core {
 
 void ResponseReader_NoBody(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     Tracker tracker("tracker");
     http::ResponseReader rr(*logger, tracker);
     string response = "HTTP/1.1 200 OK\r\n"
         "Content-Length: 0\r\n"
         "\r\n";
     http::ResponseReader::RequireMore more = http::ResponseReader::REQUIRE_MORE;
-    Optional<OTSError> err = rr.feed(more, MemPiece::from(response));
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = rr.feed(more, MemPiece::from(response));
+    TESTA_ASSERT(!err)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::STOP).issue();
     TESTA_ASSERT(rr.httpStatus() == 200)
@@ -81,7 +81,7 @@ TESTA_DEF_JUNIT_LIKE1(ResponseReader_NoBody);
 
 void ResponseReader_TooLongStatusLine(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     Tracker tracker("tracker");
     http::ResponseReader rr(*logger, tracker);
     string response0 = "HTTP/1.1 ";
@@ -89,11 +89,11 @@ void ResponseReader_TooLongStatusLine(const string&)
         "Content-Length: 0\r\n"
         "\r\n";
     http::ResponseReader::RequireMore more = http::ResponseReader::REQUIRE_MORE;
-    Optional<OTSError> err = rr.feed(more, MemPiece::from(response0));
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = rr.feed(more, MemPiece::from(response0));
+    TESTA_ASSERT(!err)
         (*err).issue();
     err = rr.feed(more, MemPiece::from(response1));
-    TESTA_ASSERT(err.present()).issue();
+    TESTA_ASSERT(err).issue();
     TESTA_ASSERT(pp::prettyPrint(*err) ==
         "{\"HttpStatus\": 56, "
         "\"ErrorCode\": \"OTSCorruptedResponse\", "
@@ -104,15 +104,15 @@ TESTA_DEF_JUNIT_LIKE1(ResponseReader_TooLongStatusLine);
 
 void ResponseReader_HttpVer(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     Tracker tracker("tracker");
     http::ResponseReader rr(*logger, tracker);
     string response = "FTP 200 OK\r\n"
         "Content-Length: 0\r\n"
         "\r\n";
     http::ResponseReader::RequireMore more = http::ResponseReader::REQUIRE_MORE;
-    Optional<OTSError> err = rr.feed(more, MemPiece::from(response));
-    TESTA_ASSERT(err.present()).issue();
+    std::optional<OTSError> err = rr.feed(more, MemPiece::from(response));
+    TESTA_ASSERT(err).issue();
     TESTA_ASSERT(pp::prettyPrint(*err) ==
         "{\"HttpStatus\": 56, "
         "\"ErrorCode\": \"OTSCorruptedResponse\", "
@@ -123,15 +123,15 @@ TESTA_DEF_JUNIT_LIKE1(ResponseReader_HttpVer);
 
 void ResponseReader_HttpStatus(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     Tracker tracker("tracker");
     http::ResponseReader rr(*logger, tracker);
     string response = "HTTP/1.1 OK\r\n"
         "Content-Length: 0\r\n"
         "\r\n";
     http::ResponseReader::RequireMore more = http::ResponseReader::REQUIRE_MORE;
-    Optional<OTSError> err = rr.feed(more, MemPiece::from(response));
-    TESTA_ASSERT(err.present()).issue();
+    std::optional<OTSError> err = rr.feed(more, MemPiece::from(response));
+    TESTA_ASSERT(err).issue();
     TESTA_ASSERT(pp::prettyPrint(*err) ==
         "{\"HttpStatus\": 56, "
         "\"ErrorCode\": \"OTSCorruptedResponse\", "
@@ -142,7 +142,7 @@ TESTA_DEF_JUNIT_LIKE1(ResponseReader_HttpStatus);
 
 void ResponseReader_ContentLength(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     Tracker tracker("tracker");
     http::ResponseReader rr(*logger, tracker);
     string response0 = "HTTP/1.1 200 OK\r\n"
@@ -151,13 +151,13 @@ void ResponseReader_ContentLength(const string&)
         "a";
     string response1 = "b";
     http::ResponseReader::RequireMore more = http::ResponseReader::REQUIRE_MORE;
-    Optional<OTSError> err = rr.feed(more, MemPiece::from(response0));
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = rr.feed(more, MemPiece::from(response0));
+    TESTA_ASSERT(!err)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::REQUIRE_MORE).issue();
 
     err = rr.feed(more, MemPiece::from(response1));
-    TESTA_ASSERT(!err.present())
+    TESTA_ASSERT(!err)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::STOP).issue();
     deque<MemPiece> body;
@@ -169,7 +169,7 @@ TESTA_DEF_JUNIT_LIKE1(ResponseReader_ContentLength);
 
 void ResponseReader_Chunked(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     Tracker tracker("tracker");
     http::ResponseReader rr(*logger, tracker);
     string response = "HTTP/1.1 200 OK\r\n"
@@ -180,8 +180,8 @@ void ResponseReader_Chunked(const string&)
         "0\r\n"
         "\r\n";
     http::ResponseReader::RequireMore more = http::ResponseReader::REQUIRE_MORE;
-    Optional<OTSError> err = rr.feed(more, MemPiece::from(response));
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = rr.feed(more, MemPiece::from(response));
+    TESTA_ASSERT(!err)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::STOP).issue();
     deque<MemPiece> body;
@@ -193,7 +193,7 @@ TESTA_DEF_JUNIT_LIKE1(ResponseReader_Chunked);
 
 void ResponseReader_MultipleChunked(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     Tracker tracker("tracker");
     http::ResponseReader rr(*logger, tracker);
     string response = "HTTP/1.1 200 OK\r\n"
@@ -206,8 +206,8 @@ void ResponseReader_MultipleChunked(const string&)
         "0\r\n"
         "\r\n";
     http::ResponseReader::RequireMore more = http::ResponseReader::REQUIRE_MORE;
-    Optional<OTSError> err = rr.feed(more, MemPiece::from(response));
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = rr.feed(more, MemPiece::from(response));
+    TESTA_ASSERT(!err)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::STOP).issue();
     deque<MemPiece> body;
@@ -219,7 +219,7 @@ TESTA_DEF_JUNIT_LIKE1(ResponseReader_MultipleChunked);
 
 void ResponseReader_LongChunk_lowercase(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     Tracker tracker("tracker");
     http::ResponseReader rr(*logger, tracker);
     string response = "HTTP/1.1 200 OK\r\n"
@@ -235,8 +235,8 @@ void ResponseReader_LongChunk_lowercase(const string&)
         "0\r\n"
         "\r\n";
     http::ResponseReader::RequireMore more = http::ResponseReader::REQUIRE_MORE;
-    Optional<OTSError> err = rr.feed(more, MemPiece::from(response));
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = rr.feed(more, MemPiece::from(response));
+    TESTA_ASSERT(!err)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::STOP).issue();
     deque<MemPiece> body;
@@ -254,7 +254,7 @@ TESTA_DEF_JUNIT_LIKE1(ResponseReader_LongChunk_lowercase);
 
 void ResponseReader_LongChunk_uppercase(const string&)
 {
-    auto_ptr<Logger> logger(createLogger("/", Logger::kDebug));
+    unique_ptr<Logger> logger(createLogger("/", Logger::kDebug));
     Tracker tracker("tracker");
     http::ResponseReader rr(*logger, tracker);
     string response = "HTTP/1.1 200 OK\r\n"
@@ -270,8 +270,8 @@ void ResponseReader_LongChunk_uppercase(const string&)
         "0\r\n"
         "\r\n";
     http::ResponseReader::RequireMore more = http::ResponseReader::REQUIRE_MORE;
-    Optional<OTSError> err = rr.feed(more, MemPiece::from(response));
-    TESTA_ASSERT(!err.present())
+    std::optional<OTSError> err = rr.feed(more, MemPiece::from(response));
+    TESTA_ASSERT(!err)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::STOP).issue();
     deque<MemPiece> body;

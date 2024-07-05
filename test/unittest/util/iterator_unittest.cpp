@@ -32,12 +32,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tablestore/util/iterator.hpp"
 #include "testa/testa.hpp"
-#include <tr1/type_traits>
+#include <type_traits>
 #include <deque>
 #include <iostream>
 
 using namespace std;
-using namespace std::tr1;
+
 
 namespace aliyun {
 namespace tablestore {

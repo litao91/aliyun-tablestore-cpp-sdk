@@ -5,7 +5,7 @@
 #include "tablestore/util/try.hpp"
 #include "tablestore/util/foreach.hpp"
 #include <boost/static_assert.hpp>
-#include <tr1/type_traits>
+#include <type_traits>
 #include <cstring>
 
 using namespace std;
@@ -25,7 +25,7 @@ void writeUint8(string& out, uint8_t val)
 template<class T>
 void writeUint(string& out, T val)
 {
-    BOOST_STATIC_ASSERT(std::tr1::is_unsigned<T>::value);
+    BOOST_STATIC_ASSERT(std::is_unsigned<T>::value);
 
     for(size_t i = 0; i < sizeof(T); ++i) {
         uint8_t x = val & 0xff;
@@ -237,7 +237,7 @@ void write(string& out, uint8_t& checksum, const Attribute& in)
     write(out, kTag_Cell);
     writeCellName(out, cellChecksum, in.name());
     write(out, cellChecksum, in.value());
-    if (in.timestamp().present()) {
+    if (in.timestamp()) {
         write(out, cellChecksum, *in.timestamp());
     }
     writeCellChecksum(out, cellChecksum);
@@ -277,7 +277,7 @@ void write(string& out, uint8_t& checksum, const RowUpdateChange::Update& in)
     uint8_t cellChecksum = 0;
     write(out, kTag_Cell);
     writeCellName(out, cellChecksum, in.attrName());
-    if (in.attrValue().present()) {
+    if (in.attrValue()) {
         write(out, cellChecksum, *in.attrValue());
     }
 
@@ -292,14 +292,14 @@ void write(string& out, uint8_t& checksum, const RowUpdateChange::Update& in)
         break;
     }
 
-    if (in.timestamp().present()) {
+    if (in.timestamp()) {
         write(out, kTag_CellTimestamp);
         uint64_t tm = in.timestamp()->toMsec();
         writeUint64(out, tm);
     }
 
     // the order of fields is different with the order of crc
-    if (in.timestamp().present()) {
+    if (in.timestamp()) {
         uint64_t tm = in.timestamp()->toMsec();
         crc8U64(cellChecksum, tm);
     }

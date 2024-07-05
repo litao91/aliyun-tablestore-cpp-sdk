@@ -31,7 +31,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/util/metaprogramming.hpp"
-#include <tr1/type_traits>
+#include <type_traits>
 
 namespace aliyun {
 namespace tablestore {
@@ -41,7 +41,7 @@ namespace impl {
 template<class T, class E = void>
 struct IteratorTraits
 {
-    typedef typename std::tr1::remove_cv<typename std::tr1::remove_reference<T>::type>::type ContainerType;
+    typedef typename std::remove_cv<typename std::remove_reference<T>::type>::type ContainerType;
     typedef typename ContainerType::iterator IteratorType;
     typedef typename ContainerType::value_type& ElemType;
 };
@@ -49,9 +49,9 @@ struct IteratorTraits
 template<class T>
 struct IteratorTraits<
     T,
-    typename mp::VoidIf<std::tr1::is_const<typename std::tr1::remove_reference<T>::type>::value>::Type>
+    typename mp::VoidIf<std::is_const<typename std::remove_reference<T>::type>::value>::Type>
 {
-    typedef typename std::tr1::remove_cv<typename std::tr1::remove_reference<T>::type>::type ContainerType;
+    typedef typename std::remove_cv<typename std::remove_reference<T>::type>::type ContainerType;
     typedef typename ContainerType::const_iterator IteratorType;
     typedef const typename ContainerType::value_type& ElemType;
 };

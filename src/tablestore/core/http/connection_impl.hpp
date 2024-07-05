@@ -36,12 +36,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/core/types.hpp"
 #include "tablestore/util/threading.hpp"
 #include "tablestore/util/mempiece.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include <boost/lockfree/queue.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/atomic.hpp>
-#include <tr1/memory>
+#include <memory>
 #include <deque>
 
 namespace aliyun {
@@ -74,13 +74,13 @@ public:
 
     virtual void asyncConnect(
         boost::asio::ip::tcp::resolver::iterator,
-        const std::tr1::function<
+        const std::function<
             void(const boost::system::error_code&,
               boost::asio::ip::tcp::resolver::iterator)>&) =0;
     virtual void gentlyClose() =0;
     virtual void asyncHandshake(
         const Endpoint&,
-        const std::tr1::function<void(const boost::system::error_code&)>&) =0;
+        const std::function<void(const boost::system::error_code&)>&) =0;
 
 protected:
     struct RequestContext
@@ -248,7 +248,7 @@ private:
         util::Logger& mLogger;
         util::Actor& mActor;
         const Tracker mTracker;
-        std::tr1::function<void(const util::Optional<OTSError>&, ConnectionBase*)> mCallback;
+        std::function<void(const std::optional<OTSError>&, ConnectionBase*)> mCallback;
         Endpoint mEndpoint;
 
         explicit Context(
@@ -277,7 +277,7 @@ private:
         const boost::system::error_code&);
     void connectComplete(
         Context*,
-        const util::Optional<OTSError>&,
+        const std::optional<OTSError>&,
         ConnectionBase*);
     void supplyConnections();
     void handleSupplyConnections();

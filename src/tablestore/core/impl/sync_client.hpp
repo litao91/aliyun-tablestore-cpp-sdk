@@ -33,7 +33,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/core/client.hpp"
-#include <tr1/memory>
+#include <memory>
 
 namespace aliyun {
 namespace tablestore {
@@ -49,30 +49,30 @@ public:
     explicit SyncClient(AsyncClient&);
 
     util::Logger& mutableLogger();
-    const std::deque<std::tr1::shared_ptr<util::Actor> >& actors() const;
+    const std::deque<std::shared_ptr<util::Actor> >& actors() const;
     const RetryStrategy& retryStrategy() const;
-    util::Optional<OTSError> listTable(ListTableResponse&, const ListTableRequest&);
-    util::Optional<OTSError> createTable(
+    std::optional<OTSError> listTable(ListTableResponse&, const ListTableRequest&);
+    std::optional<OTSError> createTable(
         CreateTableResponse&, const CreateTableRequest&);
-    util::Optional<OTSError> deleteTable(
+    std::optional<OTSError> deleteTable(
         DeleteTableResponse&, const DeleteTableRequest&);
-    util::Optional<OTSError> describeTable(
+    std::optional<OTSError> describeTable(
         DescribeTableResponse&, const DescribeTableRequest&);
-    util::Optional<OTSError> updateTable(UpdateTableResponse&, const UpdateTableRequest&);
-    util::Optional<OTSError> computeSplitsBySize(ComputeSplitsBySizeResponse&,
+    std::optional<OTSError> updateTable(UpdateTableResponse&, const UpdateTableRequest&);
+    std::optional<OTSError> computeSplitsBySize(ComputeSplitsBySizeResponse&,
         const ComputeSplitsBySizeRequest&);
-    util::Optional<OTSError> putRow(PutRowResponse&, const PutRowRequest&);
-    util::Optional<OTSError> getRow(GetRowResponse&, const GetRowRequest&);
-    util::Optional<OTSError> getRange(GetRangeResponse&, const GetRangeRequest&);
-    util::Optional<OTSError> updateRow(UpdateRowResponse&, const UpdateRowRequest&);
-    util::Optional<OTSError> deleteRow(DeleteRowResponse&, const DeleteRowRequest&);
-    util::Optional<OTSError> batchGetRow(
+    std::optional<OTSError> putRow(PutRowResponse&, const PutRowRequest&);
+    std::optional<OTSError> getRow(GetRowResponse&, const GetRowRequest&);
+    std::optional<OTSError> getRange(GetRangeResponse&, const GetRangeRequest&);
+    std::optional<OTSError> updateRow(UpdateRowResponse&, const UpdateRowRequest&);
+    std::optional<OTSError> deleteRow(DeleteRowResponse&, const DeleteRowRequest&);
+    std::optional<OTSError> batchGetRow(
         BatchGetRowResponse&, const BatchGetRowRequest&);
-    util::Optional<OTSError> batchWriteRow(
+    std::optional<OTSError> batchWriteRow(
         BatchWriteRowResponse&, const BatchWriteRowRequest&);
 
 private:
-    std::tr1::shared_ptr<AsyncClientBase> mAsyncClient;
+    std::shared_ptr<AsyncClientBase> mAsyncClient;
 
     friend class impl::AsyncClient;
 };

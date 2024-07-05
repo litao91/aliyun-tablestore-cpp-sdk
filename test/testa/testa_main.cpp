@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 #if __cplusplus < 201103L
-using namespace std::tr1;
+
 #endif
 
 namespace {

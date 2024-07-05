@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 
 using namespace std;
-using namespace std::tr1;
+
 
 namespace aliyun {
 namespace tablestore {

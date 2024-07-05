@@ -35,11 +35,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/core/batch_writer.hpp"
 #include "tablestore/util/threading.hpp"
 #include "tablestore/util/random.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/logger.hpp"
 #include <boost/atomic.hpp>
 #include <boost/noncopyable.hpp>
-#include <tr1/functional>
+#include <functional>
 #include <deque>
 
 namespace aliyun {
@@ -65,8 +65,8 @@ struct WriteTraits<BatchWriteRowRequest::Put>
     typedef PutRowRequest SingleRowRequest;
     typedef PutRowResponse SingleRowResponse;
     typedef RowPutChange SingleRowChange;
-    typedef std::tr1::function<
-        void(SingleRowRequest&, util::Optional<OTSError>&, SingleRowResponse&)> Callback;
+    typedef std::function<
+        void(SingleRowRequest&, std::optional<OTSError>&, SingleRowResponse&)> Callback;
     static const SingleRowType kType = kPutRow;
 };
 template<>
@@ -82,8 +82,8 @@ struct WriteTraits<BatchWriteRowRequest::Update>
     typedef UpdateRowRequest SingleRowRequest;
     typedef UpdateRowResponse SingleRowResponse;
     typedef RowUpdateChange SingleRowChange;
-    typedef std::tr1::function<
-        void(SingleRowRequest&, util::Optional<OTSError>&, SingleRowResponse&)> Callback;
+    typedef std::function<
+        void(SingleRowRequest&, std::optional<OTSError>&, SingleRowResponse&)> Callback;
     static const SingleRowType kType = kUpdateRow;
 };
 template<>
@@ -99,8 +99,8 @@ struct WriteTraits<BatchWriteRowRequest::Delete>
     typedef DeleteRowRequest SingleRowRequest;
     typedef DeleteRowResponse SingleRowResponse;
     typedef RowDeleteChange SingleRowChange;
-    typedef std::tr1::function<
-        void(SingleRowRequest&, util::Optional<OTSError>&, SingleRowResponse&)> Callback;
+    typedef std::function<
+        void(SingleRowRequest&, std::optional<OTSError>&, SingleRowResponse&)> Callback;
     static const SingleRowType kType = kDeleteRow;
 };
 template<>
@@ -113,12 +113,12 @@ struct WriteTraits<DeleteRowResponse> : public WriteTraits<BatchWriteRowRequest:
 class AsyncBatchWriter : public core::AsyncBatchWriter, private boost::noncopyable
 {
 public:
-    typedef std::tr1::function<void(
-        PutRowRequest&, util::Optional<OTSError>&, PutRowResponse&)> PutRowCallback;
-    typedef std::tr1::function<void(
-        UpdateRowRequest&, util::Optional<OTSError>&, UpdateRowResponse&)> UpdateRowCallback;
-    typedef std::tr1::function<void(
-        DeleteRowRequest&, util::Optional<OTSError>&, DeleteRowResponse&)> DeleteRowCallback;
+    typedef std::function<void(
+        PutRowRequest&, std::optional<OTSError>&, PutRowResponse&)> PutRowCallback;
+    typedef std::function<void(
+        UpdateRowRequest&, std::optional<OTSError>&, UpdateRowResponse&)> UpdateRowCallback;
+    typedef std::function<void(
+        DeleteRowRequest&, std::optional<OTSError>&, DeleteRowResponse&)> DeleteRowCallback;
 
     struct CallbackCarrier
     {
@@ -204,15 +204,15 @@ public:
         Callback& mutableCallback();
         const Request& request() const;
         Request& mutableRequest();
-        const util::Optional<OTSError>& error() const;
-        util::Optional<OTSError>& mutableError();
+        const std::optional<OTSError>& error() const;
+        std::optional<OTSError>& mutableError();
         const Response& response() const;
         Response& mutableResponse();
         
     private:
         Callback mCallback;
         Request mRequest;
-        util::Optional<OTSError> mError;
+        std::optional<OTSError> mError;
         Response mResponse;
     };
     
@@ -224,20 +224,20 @@ public:
 
     void putRow(
         PutRowRequest&,
-        const std::tr1::function<void(
-            PutRowRequest&, util::Optional<OTSError>&, PutRowResponse&)>&);
+        const std::function<void(
+            PutRowRequest&, std::optional<OTSError>&, PutRowResponse&)>&);
     void updateRow(
         UpdateRowRequest&,
-        const std::tr1::function<void(
-            UpdateRowRequest&, util::Optional<OTSError>&, UpdateRowResponse&)>&);
+        const std::function<void(
+            UpdateRowRequest&, std::optional<OTSError>&, UpdateRowResponse&)>&);
     void deleteRow(
         DeleteRowRequest&,
-        const std::tr1::function<void(
-            DeleteRowRequest&, util::Optional<OTSError>&, DeleteRowResponse&)>&);
+        const std::function<void(
+            DeleteRowRequest&, std::optional<OTSError>&, DeleteRowResponse&)>&);
 
     // internal use only. tests require them to be exposed to public.
     void flush();
-    std::tr1::tuple<util::Duration, int64_t> nextNapAndConcurrency(
+    std::tuple<util::Duration, int64_t> nextNapAndConcurrency(
         boost::atomic<bool>& backoff,
         int64_t maxConcurrency,
         util::Duration);
@@ -246,7 +246,7 @@ private:
     void callbackOnBatch(
         CallbackCarrier*, 
         BatchWriteRowRequest&,
-        util::Optional<OTSError>&,
+        std::optional<OTSError>&,
         BatchWriteRowResponse&);
     void aggregator();
     void takeSomeNap(util::Duration);
@@ -258,7 +258,7 @@ private:
     void send(int64_t concurrency);
     void waitAgain(CallbackCarrier&, BatchWriteRowRequest&);
     void prependWaitingList(std::deque<Item>&);
-    void triggerCallback(const std::tr1::function<void()>& cb);
+    void triggerCallback(const std::function<void()>& cb);
 
     template<class Request>
     void feedbackFromBatchReq(
@@ -275,7 +275,7 @@ private:
     void feedbackOkRequest(
         typename WriteTraits<Request>::SingleRowChange&,
         typename WriteTraits<Request>::Callback&,
-        util::Optional<Row>&,
+        std::optional<Row>&,
         const std::string& requestId,
         const std::string& traceId);
     template<class Request>
@@ -297,7 +297,7 @@ public:
     static int64_t sDefaultActors;
 
 private:
-    std::auto_ptr<util::Logger> mLogger;
+    std::unique_ptr<util::Logger> mLogger;
     core::AsyncClient& mClient;
 
     int64_t mMaxConcurrency;
@@ -305,13 +305,13 @@ private:
     util::Duration mRegularNap;
     util::Duration mMaxNap;
     util::Duration mNapShrinkStep;
-    std::deque<std::tr1::shared_ptr<util::Actor> > mActors;
+    std::deque<std::shared_ptr<util::Actor> > mActors;
 
     util::Thread mAggregateThread;
     util::Semaphore mAggregateSem;
     boost::atomic<bool> mExit;
     boost::atomic<int64_t> mOngoingRequests;
-    std::auto_ptr<util::Random> mRng;
+    std::unique_ptr<util::Random> mRng;
     util::Mutex mMutex;
     std::deque<Item> mWaitingList;
     boost::atomic<bool> mShouldBackoff;

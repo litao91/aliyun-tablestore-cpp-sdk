@@ -20,15 +20,15 @@ void syncListTable()
     ClientOptions opts;
     SyncClient* pclient = NULL;
     {
-        Optional<OTSError> res = SyncClient::create(pclient, ep, cr, opts);
-        assert(!res.present());
+        std::optional<OTSError> res = SyncClient::create(pclient, ep, cr, opts);
+        assert(!res);
     }
-    auto_ptr<SyncClient> client(pclient);
+    unique_ptr<SyncClient> client(pclient);
     sleep(30); // wait a while for connection ready
     ListTableRequest req;
     ListTableResponse resp;
-    Optional<OTSError> res = client->listTable(resp, req);
-    assert(!res.present());
+    std::optional<OTSError> res = client->listTable(resp, req);
+    assert(!res);
     const IVector<string>& xs = resp.tables();
     for(int64_t i = 0; i < xs.size(); ++i) {
         cout << xs[i] << endl;

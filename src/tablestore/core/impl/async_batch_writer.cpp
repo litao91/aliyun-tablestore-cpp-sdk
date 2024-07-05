@@ -4,13 +4,13 @@
 #include "tablestore/util/logging.hpp"
 #include "tablestore/util/security.hpp"
 #include <boost/ref.hpp>
-#include <tr1/unordered_set>
-#include <tr1/tuple>
+#include <unordered_set>
+#include <tuple>
 #include <limits>
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -162,7 +162,7 @@ AsyncBatchWriter::AsyncBatchWriter(
     mShouldBackoff(false),
     mActorSelector(0)
 {
-    if (cfg.actors().present()) {
+    if (cfg.actors()) {
         mActors = *cfg.actors();
     } else {
         for(int64_t i = 0; i < sDefaultActors; ++i) {
@@ -259,7 +259,7 @@ void AsyncBatchWriter::send(int64_t concurrency)
     int64_t incr = 0;
     for(; incr < concurrency - watermark; ++incr) {
         BatchWriteRowRequest batchReq;
-        auto_ptr<CallbackCarrier> carrier(new CallbackCarrier());
+        unique_ptr<CallbackCarrier> carrier(new CallbackCarrier());
         int64_t remains = 0;
         int64_t num = 0;
         batch(batchReq, *carrier, remains, num);
@@ -455,7 +455,7 @@ template<class Request>
 void callbackWithContext(AsyncBatchWriter::Context<Request>* ctx)
 {
     OTS_ASSERT(ctx != NULL);
-    auto_ptr<AsyncBatchWriter::Context<Request> > c(ctx);
+    unique_ptr<AsyncBatchWriter::Context<Request> > c(ctx);
     c->callback()(c->mutableRequest(), c->mutableError(), c->mutableResponse());
 }
 
@@ -464,11 +464,11 @@ void callbackWithContext(AsyncBatchWriter::Context<Request>* ctx)
 void AsyncBatchWriter::callbackOnBatch(
     CallbackCarrier* car,
     BatchWriteRowRequest& req,
-    Optional<OTSError>& err,
+    std::optional<OTSError>& err,
     BatchWriteRowResponse& resp)
 {
-    auto_ptr<CallbackCarrier> carrier(car);
-    if (err.present()) {
+    unique_ptr<CallbackCarrier> carrier(car);
+    if (err) {
         RetryStrategy::RetryCategory retriable = RetryStrategy::retriable(*err);
         switch(retriable) {
         case RetryStrategy::UNRETRIABLE: {
@@ -526,7 +526,7 @@ void AsyncBatchWriter::feedbackAllError(
         (callbacks.size());
     for(int64_t i = 0, sz = causes.size(); i < sz; ++i) {
         Subtype& cause = causes[i];
-        auto_ptr<Context<Request> > ctx(new Context<Request>());
+        unique_ptr<Context<Request> > ctx(new Context<Request>());
         ctx->mutableCallback() = callbacks[i];
         moveAssign(ctx->mutableRequest().mutableRowChange(), util::move(cause.mutableGet()));
         ctx->mutableError().reset(err);
@@ -560,7 +560,7 @@ void AsyncBatchWriter::feedbackFromBatchReq(
     for(int64_t i = 0, sz = results.size(); i < sz; ++i) {
         Subtype& cause = causes[i];
         Callback& callback = callbacks[i];
-        Result<util::Optional<Row>, OTSError>& result = results[i].mutableGet();
+        Result<std::optional<Row>, OTSError>& result = results[i].mutableGet();
         if (result.ok()) {
             feedbackOkRequest<Request>(
                 cause.mutableGet(),
@@ -584,11 +584,11 @@ template<class Request>
 void AsyncBatchWriter::feedbackOkRequest(
     typename WriteTraits<Request>::SingleRowChange& chg,
     typename WriteTraits<Request>::Callback& cb,
-    Optional<Row>& row,
+    std::optional<Row>& row,
     const string& requestId,
     const string& traceId)
 {
-    auto_ptr<Context<Request> > ctx(new Context<Request>());
+    unique_ptr<Context<Request> > ctx(new Context<Request>());
     ctx->mutableCallback() = cb;
     moveAssign(ctx->mutableRequest().mutableRowChange(), util::move(chg));
     ctx->mutableResponse().mutableRequestId() = requestId;
@@ -615,10 +615,10 @@ void AsyncBatchWriter::feedbackErrRequest(
             ("RowChange", chg)
             ("Error", err)
             .what("An unretriable single-row error occurs in BatchWriteRowResponse");
-        auto_ptr<Context<Request> > ctx(new Context<Request>());
+        unique_ptr<Context<Request> > ctx(new Context<Request>());
         ctx->mutableCallback() = cb;
         moveAssign(ctx->mutableRequest().mutableRowChange(), util::move(chg));
-        ctx->mutableError().reset(util::move(err));
+        ctx->mutableError().emplace(std::move(err));
         ctx->mutableError()->mutableRequestId() = requestId;
         ctx->mutableError()->mutableTraceId() = traceId;
         triggerCallback(
@@ -694,20 +694,20 @@ void AsyncBatchWriter::issue(
     if (!cb) {
         OTSError err(OTSError::kPredefined_OTSParameterInvalid);
         err.mutableMessage() = "Callback should not be null.";
-        auto_ptr<Context<Request> > ctx(new Context<Request>());
+        unique_ptr<Context<Request> > ctx(new Context<Request>());
         ctx->mutableCallback() = cb;
         moveAssign(ctx->mutableRequest(), util::move(req));
-        ctx->mutableError().reset(util::move(err));
+        ctx->mutableError().emplace(std::move(err));
         triggerCallback(
             bind(callbackWithContext<Request>,
                 ctx.release()));
         return;
     }
 
-    Optional<OTSError> err = req.validate();
-    if (err.present()) {
+    std::optional<OTSError> err = req.validate();
+    if (err) {
         PutRowResponse resp;
-        auto_ptr<Context<Request> > ctx(new Context<Request>());
+        unique_ptr<Context<Request> > ctx(new Context<Request>());
         ctx->mutableCallback() = cb;
         moveAssign(ctx->mutableRequest(), util::move(req));
         moveAssign(ctx->mutableError(), util::move(err));
@@ -789,13 +789,13 @@ Request& AsyncBatchWriter::Context<Request>::mutableRequest()
 }
 
 template<class Request>
-const util::Optional<OTSError>& AsyncBatchWriter::Context<Request>::error() const
+const std::optional<OTSError>& AsyncBatchWriter::Context<Request>::error() const
 {
     return mError;
 }
 
 template<class Request>
-util::Optional<OTSError>& AsyncBatchWriter::Context<Request>::mutableError()
+std::optional<OTSError>& AsyncBatchWriter::Context<Request>::mutableError()
 {
     return mError;
 }

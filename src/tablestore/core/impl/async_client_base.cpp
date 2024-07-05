@@ -47,8 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/ref.hpp>
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -56,7 +56,7 @@ namespace tablestore {
 namespace core {
 namespace impl {
 
-Optional<OTSError> AsyncClientBase::create(
+std::optional<OTSError> AsyncClientBase::create(
     AsyncClientBase*& result,
     Endpoint& ep, Credential& cr, ClientOptions& opts)
 {
@@ -65,17 +65,17 @@ Optional<OTSError> AsyncClientBase::create(
     TRY(opts.validate());
     http::Endpoint hep;
     {
-        Optional<string> err = http::Endpoint::parse(hep, ep.endpoint());
-        if (err.present()) {
+        std::optional<string> err = http::Endpoint::parse(hep, ep.endpoint());
+        if (err) {
             OTSError e(OTSError::kPredefined_OTSParameterInvalid);
             e.mutableMessage() = *err;
-            return Optional<OTSError>(util::move(e));
+            return std::optional<OTSError>(util::move(e));
         }
     }
 
     result = new AsyncClientBase(hep, ep.instanceName(), cr, opts);
 
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 util::Logger& AsyncClientBase::mutableLogger()
@@ -243,14 +243,14 @@ string AsyncClientBase::sign(
     return b64.base64().to<string>();
 }
 
-Optional<OTSError> AsyncClientBase::validateResponse(
+std::optional<OTSError> AsyncClientBase::validateResponse(
     const Tracker& tracker,
     const http::InplaceHeaders& headers,
     const deque<MemPiece>& body)
 {
     http::InplaceHeaders::const_iterator it = headers.find(MemPiece::from(kOTSContentMD5));
     if (it == headers.end()) {
-        return Optional<OTSError>();
+        return std::optional<OTSError>();
     }
 
     MemPiece expect = it->second;
@@ -267,9 +267,9 @@ Optional<OTSError> AsyncClientBase::validateResponse(
         msg.append(", real=");
         msg.append(real);
         e.mutableMessage() = msg;
-        return Optional<OTSError>(util::move(e));
+        return std::optional<OTSError>(util::move(e));
     }
-    return Optional<OTSError>();
+    return std::optional<OTSError>();
 }
 
 } // namespace impl

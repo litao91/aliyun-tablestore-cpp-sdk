@@ -35,8 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "api_traits.hpp"
 
 using namespace std;
-using namespace std::tr1;
-using namespace std::tr1::placeholders;
+
+using namespace std::placeholders;
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -56,7 +56,7 @@ struct Context: public AsyncClientBase::Context<kAction>
         AsyncClientBase& base,
         const Tracker& tracker,
         ApiRequest& req,
-        const function<void(ApiRequest&, Optional<OTSError>&, ApiResponse&)>& userCb)
+        const function<void(ApiRequest&, std::optional<OTSError>&, ApiResponse&)>& userCb)
       : AsyncClientBase::Context<kAction>(base, tracker),
         mUserCb(userCb)
     {
@@ -64,14 +64,14 @@ struct Context: public AsyncClientBase::Context<kAction>
     }
 
     void wrapCallback(
-        Optional<OTSError>& err,
+        std::optional<OTSError>& err,
         ApiResponse& resp)
     {
         mUserCb(mApiRequest, err, resp);
     }
 
     ApiRequest mApiRequest;
-    function<void(ApiRequest&, Optional<OTSError>&, ApiResponse&)> mUserCb;
+    function<void(ApiRequest&, std::optional<OTSError>&, ApiResponse&)> mUserCb;
 };
 
 template<Action kAction>
@@ -80,17 +80,17 @@ void go(
     typename ApiTraits<kAction>::ApiRequest& req,
     const function<void(
         typename ApiTraits<kAction>::ApiRequest&,
-        Optional<OTSError>&,
+        std::optional<OTSError>&,
         typename ApiTraits<kAction>::ApiResponse&)>& cb)
 {
     typedef Context<kAction> Ctx;
 
     Tracker tracker(Tracker::create(base.randomGenerator()));
-    auto_ptr<Ctx> ctx(new Ctx(base, tracker, req, cb));
-    Optional<OTSError> err = ctx->build(
+    unique_ptr<Ctx> ctx(new Ctx(base, tracker, req, cb));
+    std::optional<OTSError> err = ctx->build(
         ctx->mApiRequest,
         bind(&Ctx::wrapCallback, &*ctx, _1, _2));
-    if (err.present()) {
+    if (err) {
         typename ApiTraits<kAction>::ApiResponse resp;
         cb(ctx->mApiRequest, err, resp);
     } else {
@@ -126,7 +126,7 @@ const RetryStrategy& AsyncClient::retryStrategy() const
 void AsyncClient::createTable(
     CreateTableRequest& req,
     const function<void(
-        CreateTableRequest&, Optional<OTSError>&, CreateTableResponse&)>& cb)
+        CreateTableRequest&, std::optional<OTSError>&, CreateTableResponse&)>& cb)
 {
     go<kApi_CreateTable>(*mAsyncClient, req, cb);
 }
@@ -134,7 +134,7 @@ void AsyncClient::createTable(
 void AsyncClient::deleteTable(
     DeleteTableRequest& req,
     const function<void(
-        DeleteTableRequest&, Optional<OTSError>&, DeleteTableResponse&)>& cb)
+        DeleteTableRequest&, std::optional<OTSError>&, DeleteTableResponse&)>& cb)
 {
     go<kApi_DeleteTable>(*mAsyncClient, req, cb);
 }
@@ -142,7 +142,7 @@ void AsyncClient::deleteTable(
 void AsyncClient::listTable(
     ListTableRequest& req,
     const function<void(
-        ListTableRequest&, Optional<OTSError>&, ListTableResponse&)>& cb)
+        ListTableRequest&, std::optional<OTSError>&, ListTableResponse&)>& cb)
 {
     go<kApi_ListTable>(*mAsyncClient, req, cb);
 }
@@ -150,7 +150,7 @@ void AsyncClient::listTable(
 void AsyncClient::describeTable(
     DescribeTableRequest& req,
     const function<void(
-        DescribeTableRequest&, Optional<OTSError>&, DescribeTableResponse&)>& cb)
+        DescribeTableRequest&, std::optional<OTSError>&, DescribeTableResponse&)>& cb)
 {
     go<kApi_DescribeTable>(*mAsyncClient, req, cb);
 }
@@ -158,7 +158,7 @@ void AsyncClient::describeTable(
 void AsyncClient::updateTable(
     UpdateTableRequest& req,
     const function<void(
-        UpdateTableRequest&, Optional<OTSError>&, UpdateTableResponse&)>& cb)
+        UpdateTableRequest&, std::optional<OTSError>&, UpdateTableResponse&)>& cb)
 {
     go<kApi_UpdateTable>(*mAsyncClient, req, cb);
 }
@@ -166,7 +166,7 @@ void AsyncClient::updateTable(
 void AsyncClient::getRange(
     GetRangeRequest& req,
     const function<void(
-        GetRangeRequest&, Optional<OTSError>&, GetRangeResponse&)>& cb)
+        GetRangeRequest&, std::optional<OTSError>&, GetRangeResponse&)>& cb)
 {
     go<kApi_GetRange>(*mAsyncClient, req, cb);
 }
@@ -174,7 +174,7 @@ void AsyncClient::getRange(
 void AsyncClient::putRow(
     PutRowRequest& req,
     const function<void(
-        PutRowRequest&, Optional<OTSError>&, PutRowResponse&)>& cb)
+        PutRowRequest&, std::optional<OTSError>&, PutRowResponse&)>& cb)
 {
     go<kApi_PutRow>(*mAsyncClient, req, cb);
 }
@@ -182,7 +182,7 @@ void AsyncClient::putRow(
 void AsyncClient::getRow(
     GetRowRequest& req,
     const function<void(
-        GetRowRequest&, Optional<OTSError>&, GetRowResponse&)>& cb)
+        GetRowRequest&, std::optional<OTSError>&, GetRowResponse&)>& cb)
 {
     go<kApi_GetRow>(*mAsyncClient, req, cb);
 }
@@ -190,7 +190,7 @@ void AsyncClient::getRow(
 void AsyncClient::updateRow(
     UpdateRowRequest& req,
     const function<void(
-        UpdateRowRequest&, Optional<OTSError>&, UpdateRowResponse&)>& cb)
+        UpdateRowRequest&, std::optional<OTSError>&, UpdateRowResponse&)>& cb)
 {
     go<kApi_UpdateRow>(*mAsyncClient, req, cb);
 }
@@ -198,7 +198,7 @@ void AsyncClient::updateRow(
 void AsyncClient::deleteRow(
     DeleteRowRequest& req,
     const function<void(
-        DeleteRowRequest&, Optional<OTSError>&, DeleteRowResponse&)>& cb)
+        DeleteRowRequest&, std::optional<OTSError>&, DeleteRowResponse&)>& cb)
 {
     go<kApi_DeleteRow>(*mAsyncClient, req, cb);
 }
@@ -206,7 +206,7 @@ void AsyncClient::deleteRow(
 void AsyncClient::batchGetRow(
     BatchGetRowRequest& req,
     const function<void(
-        BatchGetRowRequest&, Optional<OTSError>&, BatchGetRowResponse&)>& cb)
+        BatchGetRowRequest&, std::optional<OTSError>&, BatchGetRowResponse&)>& cb)
 {
     go<kApi_BatchGetRow>(*mAsyncClient, req, cb);
 }
@@ -214,7 +214,7 @@ void AsyncClient::batchGetRow(
 void AsyncClient::batchWriteRow(
     BatchWriteRowRequest& req,
     const function<void(
-        BatchWriteRowRequest&, Optional<OTSError>&, BatchWriteRowResponse&)>& cb)
+        BatchWriteRowRequest&, std::optional<OTSError>&, BatchWriteRowResponse&)>& cb)
 {
     go<kApi_BatchWriteRow>(*mAsyncClient, req, cb);
 }
@@ -222,7 +222,7 @@ void AsyncClient::batchWriteRow(
 void AsyncClient::computeSplitsBySize(
     ComputeSplitsBySizeRequest& req,
     const function<void(
-        ComputeSplitsBySizeRequest&, Optional<OTSError>&, ComputeSplitsBySizeResponse&)>& cb)
+        ComputeSplitsBySizeRequest&, std::optional<OTSError>&, ComputeSplitsBySizeResponse&)>& cb)
 {
     go<kApi_ComputeSplitsBySize>(*mAsyncClient, req, cb);
 }

@@ -33,8 +33,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/core/client.hpp"
-#include <tr1/memory>
-#include <tr1/functional>
+#include <memory>
+#include <functional>
 
 namespace aliyun {
 namespace tablestore {
@@ -50,63 +50,63 @@ public:
     explicit AsyncClient(SyncClient&);
 
     util::Logger& mutableLogger();
-    const std::deque<std::tr1::shared_ptr<util::Actor> >& actors() const;
+    const std::deque<std::shared_ptr<util::Actor> >& actors() const;
     const RetryStrategy& retryStrategy() const;
     void createTable(
         CreateTableRequest&,
-        const std::tr1::function<void(
-            CreateTableRequest&, util::Optional<OTSError>&, CreateTableResponse&)>&);
+        const std::function<void(
+            CreateTableRequest&, std::optional<OTSError>&, CreateTableResponse&)>&);
     void deleteTable(
         DeleteTableRequest&,
-        const std::tr1::function<void(
-            DeleteTableRequest&, util::Optional<OTSError>&, DeleteTableResponse&)>&);
+        const std::function<void(
+            DeleteTableRequest&, std::optional<OTSError>&, DeleteTableResponse&)>&);
     void listTable(
         ListTableRequest&,
-        const std::tr1::function<void(
-            ListTableRequest&, util::Optional<OTSError>&, ListTableResponse&)>&);
+        const std::function<void(
+            ListTableRequest&, std::optional<OTSError>&, ListTableResponse&)>&);
     void describeTable(
         DescribeTableRequest&,
-        const std::tr1::function<void(
-            DescribeTableRequest&, util::Optional<OTSError>&, DescribeTableResponse&)>&);
+        const std::function<void(
+            DescribeTableRequest&, std::optional<OTSError>&, DescribeTableResponse&)>&);
     void updateTable(
         UpdateTableRequest&,
-        const std::tr1::function<void(
-            UpdateTableRequest&, util::Optional<OTSError>&, UpdateTableResponse&)>&);
+        const std::function<void(
+            UpdateTableRequest&, std::optional<OTSError>&, UpdateTableResponse&)>&);
     void getRange(
         GetRangeRequest&,
-        const std::tr1::function<void(
-            GetRangeRequest&, util::Optional<OTSError>&, GetRangeResponse&)>&);
+        const std::function<void(
+            GetRangeRequest&, std::optional<OTSError>&, GetRangeResponse&)>&);
     void putRow(
         PutRowRequest&,
-        const std::tr1::function<void(
-            PutRowRequest&, util::Optional<OTSError>&, PutRowResponse&)>&);
+        const std::function<void(
+            PutRowRequest&, std::optional<OTSError>&, PutRowResponse&)>&);
     void getRow(
         GetRowRequest&,
-        const std::tr1::function<void(
-            GetRowRequest&, util::Optional<OTSError>&, GetRowResponse&)>&);
+        const std::function<void(
+            GetRowRequest&, std::optional<OTSError>&, GetRowResponse&)>&);
     void updateRow(
         UpdateRowRequest&,
-        const std::tr1::function<void(
-            UpdateRowRequest&, util::Optional<OTSError>&, UpdateRowResponse&)>&);
+        const std::function<void(
+            UpdateRowRequest&, std::optional<OTSError>&, UpdateRowResponse&)>&);
     void deleteRow(
         DeleteRowRequest&,
-        const std::tr1::function<void(
-            DeleteRowRequest&, util::Optional<OTSError>&, DeleteRowResponse&)>&);
+        const std::function<void(
+            DeleteRowRequest&, std::optional<OTSError>&, DeleteRowResponse&)>&);
     void batchGetRow(
         BatchGetRowRequest&,
-        const std::tr1::function<void(
-            BatchGetRowRequest&, util::Optional<OTSError>&, BatchGetRowResponse&)>&);
+        const std::function<void(
+            BatchGetRowRequest&, std::optional<OTSError>&, BatchGetRowResponse&)>&);
     void batchWriteRow(
         BatchWriteRowRequest&,
-        const std::tr1::function<void(
-            BatchWriteRowRequest&, util::Optional<OTSError>&, BatchWriteRowResponse&)>&);
+        const std::function<void(
+            BatchWriteRowRequest&, std::optional<OTSError>&, BatchWriteRowResponse&)>&);
     void computeSplitsBySize(
         ComputeSplitsBySizeRequest&,
-        const std::tr1::function<void(
-            ComputeSplitsBySizeRequest&, util::Optional<OTSError>&, ComputeSplitsBySizeResponse&)>&);
+        const std::function<void(
+            ComputeSplitsBySizeRequest&, std::optional<OTSError>&, ComputeSplitsBySizeResponse&)>&);
 
 private:
-    std::tr1::shared_ptr<AsyncClientBase> mAsyncClient;
+    std::shared_ptr<AsyncClientBase> mAsyncClient;
 
     friend class impl::SyncClient;
 };

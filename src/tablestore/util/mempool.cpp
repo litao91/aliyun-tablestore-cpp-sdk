@@ -124,7 +124,7 @@ IncrementalMemPool::IncrementalMemPool()
     mAvailableBlocks(new BlockFreeQueueImpl())
 {
     for(int64_t i = 0; i < kInitBlocks; ++i) {
-        auto_ptr<MyInnerBlock> blk(new MyInnerBlock(*this));
+        unique_ptr<MyInnerBlock> blk(new MyInnerBlock(*this));
         if (mAvailableBlocks->push(blk.get())) {
             blk.release();
             mTotalBlocks.fetch_add(1, boost::memory_order_acq_rel);

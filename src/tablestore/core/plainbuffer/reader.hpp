@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/core/types.hpp"
 #include "tablestore/core/error.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/mempiece.hpp"
 #include <stdint.h>
 
@@ -44,14 +44,14 @@ namespace core {
 namespace plainbuffer {
 
 namespace impl {
-util::Optional<OTSError> readUint8(uint8_t&, uint8_t const *&, uint8_t const *);
-util::Optional<OTSError> readUint32(uint32_t&, uint8_t const *&, uint8_t const *);
-util::Optional<OTSError> readUint64(uint64_t&, uint8_t const *&, uint8_t const *);
-util::Optional<OTSError> readHeader(uint8_t const *&, uint8_t const *);
+std::optional<OTSError> readUint8(uint8_t&, uint8_t const *&, uint8_t const *);
+std::optional<OTSError> readUint32(uint32_t&, uint8_t const *&, uint8_t const *);
+std::optional<OTSError> readUint64(uint64_t&, uint8_t const *&, uint8_t const *);
+std::optional<OTSError> readHeader(uint8_t const *&, uint8_t const *);
 } // namespace impl
 
-util::Optional<OTSError> readRow(Row&, const util::MemPiece&);
-util::Optional<OTSError> readRows(IVector<Row>&, const util::MemPiece&);
+std::optional<OTSError> readRow(Row&, const util::MemPiece&);
+std::optional<OTSError> readRows(IVector<Row>&, const util::MemPiece&);
 
 } // namespace plainbuffer
 } // namespace core

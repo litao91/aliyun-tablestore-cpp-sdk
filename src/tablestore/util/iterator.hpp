@@ -33,8 +33,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "tablestore/util/optional.hpp"
-#include <tr1/type_traits>
+
+#include <type_traits>
 
 namespace aliyun {
 namespace tablestore {
@@ -44,10 +44,10 @@ namespace util {
  * An interface to iterators.
  * Usually, its usage is like:
  *
- * auto_ptr<Iterator<T, Err> > iter(...);
+ * unique_ptr<Iterator<T, Err> > iter(...);
  * for(;;) {
- *     Optional<Err> err = iter->moveNext();
- *     if (err.present()) {
+ *     std::optional<Err> err = iter->moveNext();
+ *     if (err) {
  *         // moveNext() is possibly backboned by IO
  *         // So it may fail.
  *         break;
@@ -72,10 +72,10 @@ public:
     virtual T get() throw() =0;
     /**
      * Move to next valid element if exists.
-     * If any error occurs on the way, wraps it into an Optional and returns;
-     * otherwise, returns an absent Optional.
+     * If any error occurs on the way, wraps it into an std::optional and returns;
+     * otherwise, returns an absent std::optional.
      */
-    virtual Optional<Err> moveNext() =0;
+    virtual std::optional<Err> moveNext() =0;
 };
 
 } // namespace util
@@ -112,12 +112,12 @@ public:
     }
 
     /**
-     * Always returns an absent Optional
+     * Always returns an absent std::optional
      */
-    Optional<int> moveNext()
+    std::optional<int> moveNext()
     {
         ++mIter;
-        return Optional<int>();
+        return std::optional<int>();
     }
 
 private:

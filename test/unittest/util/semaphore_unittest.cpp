@@ -31,11 +31,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/util/threading.hpp"
 #include "testa/testa.hpp"
-#include <tr1/functional>
+#include <functional>
 #include <string>
 
 using namespace std;
-using namespace std::tr1;
+
 
 namespace aliyun {
 namespace tablestore {

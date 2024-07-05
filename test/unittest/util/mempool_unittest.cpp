@@ -36,12 +36,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/thread.hpp>
 #include <boost/atomic.hpp>
 #include <boost/ref.hpp>
-#include <tr1/functional>
+#include <functional>
 #include <string>
 #include <stdint.h>
 
 using namespace std;
-using namespace std::tr1;
+
 using namespace aliyun::tablestore::util;
 
 namespace aliyun {
@@ -159,7 +159,7 @@ void MemPool_tester(
 void IncrementalMemPool_Nthreads(const string&)
 {
     IncrementalMemPool mp;
-    auto_ptr<Random> rng(random::newDefault(0));
+    unique_ptr<Random> rng(random::newDefault(0));
     boost::atomic<bool> stopper;
     boost::thread_group testers;
     for(int i = 0; i < 32; ++i) {
@@ -198,7 +198,7 @@ void StrPool_tester(
 void StrPool_Nthreads(const string&)
 {
     StrPool sp;
-    auto_ptr<Random> rng(random::newDefault());
+    unique_ptr<Random> rng(random::newDefault());
     boost::atomic<bool> stopper;
     boost::thread_group testers;
     for(int i = 0; i < 32; ++i) {

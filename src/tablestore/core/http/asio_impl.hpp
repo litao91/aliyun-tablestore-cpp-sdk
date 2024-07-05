@@ -37,12 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "timer_impl.hpp"
 #include "types.hpp"
 #include "tablestore/core/types.hpp"
-#include "tablestore/util/optional.hpp"
+
 #include "tablestore/util/threading.hpp"
 #include "tablestore/util/seq_gen.hpp"
 #include <boost/atomic.hpp>
 #include <boost/asio.hpp>
-#include <tr1/memory>
+#include <memory>
 #include <deque>
 #include <stdint.h>
 
@@ -60,7 +60,7 @@ public:
         int64_t maxConnections,
         util::Duration connectTimeout,
         const Endpoint&,
-        const std::deque<std::tr1::shared_ptr<util::Actor> >&);
+        const std::deque<std::shared_ptr<util::Actor> >&);
     ~AsioImpl();
 
     void asyncBorrowConnection(
@@ -101,7 +101,7 @@ private:
 
 private:
     util::Logger& mLogger;
-    std::deque<std::tr1::shared_ptr<util::Actor> > mActors;
+    std::deque<std::shared_ptr<util::Actor> > mActors;
     util::SequenceGenerator mSeqGen;
     boost::atomic<bool> mClosed;
 
