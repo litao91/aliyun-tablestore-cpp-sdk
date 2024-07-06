@@ -31,8 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "bookmark_input_stream.hpp"
 #include "tablestore/core/types.hpp"
-#include "tablestore/util/logging.hpp"
 #include "tablestore/util/assert.hpp"
+#include "tablestore/util/logging.hpp"
 
 using namespace std;
 using namespace aliyun::tablestore::util;
@@ -42,117 +42,90 @@ namespace tablestore {
 namespace core {
 namespace http {
 
-BookmarkInputStream::BookmarkInputStream(const Tracker& tracker)
-  : mTracker(tracker)
-{}
+BookmarkInputStream::BookmarkInputStream(const Tracker &tracker)
+    : mTracker(tracker) {}
 
-void BookmarkInputStream::feed(const MemPiece& mem)
-{
-    mBuffers.push_back(mem);
+void BookmarkInputStream::feed(const MemPiece &mem) { mBuffers.push_back(mem); }
+
+std::optional<uint8_t> BookmarkInputStream::peek() {
+  if (mCurrent.mIndex >= mBuffers.size()) {
+    return std::optional<uint8_t>();
+  }
+  OTS_ASSERT(mCurrent.mOffset < mBuffers[mCurrent.mIndex].length())
+  (mTracker)(mCurrent.mOffset)(mCurrent.mIndex)(
+      mBuffers[mCurrent.mIndex].length());
+  return std::optional<uint8_t>(
+      mBuffers[mCurrent.mIndex].get(mCurrent.mOffset));
 }
 
-std::optional<uint8_t> BookmarkInputStream::peek()
-{
-    if (mCurrent.mIndex >= mBuffers.size()) {
-        return std::optional<uint8_t>();
+bool BookmarkInputStream::moveNext() {
+  if (mCurrent.mIndex >= mBuffers.size()) {
+    return false;
+  }
+  OTS_ASSERT(mCurrent.mOffset < mBuffers[mCurrent.mIndex].length())
+  (mTracker)(mCurrent.mOffset)(mCurrent.mIndex)(
+      mBuffers[mCurrent.mIndex].length());
+  inc(mCurrent);
+  return mCurrent.mIndex < mBuffers.size();
+}
+
+void BookmarkInputStream::pushBookmark() { mBookmarks.push_back(mCurrent); }
+
+void BookmarkInputStream::popBookmark(deque<MemPiece> &out) {
+  OTS_ASSERT(!mBookmarks.empty())
+  (mTracker);
+  Location start = mBookmarks.back();
+  mBookmarks.pop_back();
+  Location end = mCurrent;
+  OTS_ASSERT(start.mIndex <= end.mIndex)
+  (mTracker)(start.mIndex)(end.mIndex)(mBuffers.size());
+  OTS_ASSERT(end.mIndex < mBuffers.size())
+  (mTracker)(start.mIndex)(end.mIndex)(mBuffers.size());
+
+  deque<MemPiece> res;
+  if (start.mIndex == end.mIndex) {
+    OTS_ASSERT(start.mIndex < mBuffers.size())
+    (start.mIndex)(mBuffers.size());
+    OTS_ASSERT(start.mOffset <= end.mOffset)
+    (mTracker)(start.mOffset)(end.mOffset);
+    OTS_ASSERT(end.mOffset < mBuffers[end.mIndex].length())
+    (mTracker)(end.mIndex)(end.mOffset)(mBuffers[end.mIndex].length());
+    res.push_back(mBuffers[start.mIndex].subpiece(
+        start.mOffset, end.mOffset - start.mOffset + 1));
+  } else {
+    res.push_back(mBuffers[start.mIndex].subpiece(start.mOffset));
+    for (size_t i = start.mIndex + 1; i < end.mIndex; ++i) {
+      res.push_back(mBuffers[i]);
     }
-    OTS_ASSERT(mCurrent.mOffset < mBuffers[mCurrent.mIndex].length())
-        (mTracker)
-        (mCurrent.mOffset)
-        (mCurrent.mIndex)
-        (mBuffers[mCurrent.mIndex].length());
-    return std::optional<uint8_t>(mBuffers[mCurrent.mIndex].get(mCurrent.mOffset));
-}
+    res.push_back(mBuffers[end.mIndex].subpiece(0, end.mOffset + 1));
+  }
 
-bool BookmarkInputStream::moveNext()
-{
-    if (mCurrent.mIndex >= mBuffers.size()) {
-        return false;
-    }
-    OTS_ASSERT(mCurrent.mOffset < mBuffers[mCurrent.mIndex].length())
-        (mTracker)
-        (mCurrent.mOffset)
-        (mCurrent.mIndex)
-        (mBuffers[mCurrent.mIndex].length());
-    inc(mCurrent);
-    return mCurrent.mIndex < mBuffers.size();
-}
-
-void BookmarkInputStream::pushBookmark()
-{
-    mBookmarks.push_back(mCurrent);
-}
-
-void BookmarkInputStream::popBookmark(deque<MemPiece>& out)
-{
-    OTS_ASSERT(!mBookmarks.empty())
-        (mTracker);
-    Location start = mBookmarks.back();
-    mBookmarks.pop_back();
-    Location end = mCurrent;
-    OTS_ASSERT(start.mIndex <= end.mIndex)
-        (mTracker)
-        (start.mIndex)
-        (end.mIndex)
-        (mBuffers.size());
-    OTS_ASSERT(end.mIndex < mBuffers.size())
-        (mTracker)
-        (start.mIndex)
-        (end.mIndex)
-        (mBuffers.size());
-
-    deque<MemPiece> res;
-    if (start.mIndex == end.mIndex) {
-        OTS_ASSERT(start.mIndex < mBuffers.size())
-            (start.mIndex)
-            (mBuffers.size());
-        OTS_ASSERT(start.mOffset <= end.mOffset)
-            (mTracker)
-            (start.mOffset)
-            (end.mOffset);
-        OTS_ASSERT(end.mOffset < mBuffers[end.mIndex].length())
-            (mTracker)
-            (end.mIndex)
-            (end.mOffset)
-            (mBuffers[end.mIndex].length());
-        res.push_back(
-            mBuffers[start.mIndex].subpiece(
-                start.mOffset, end.mOffset - start.mOffset + 1));
-    } else {
-        res.push_back(mBuffers[start.mIndex].subpiece(start.mOffset));
-        for(size_t i = start.mIndex + 1; i < end.mIndex; ++i) {
-            res.push_back(mBuffers[i]);
-        }
-        res.push_back(mBuffers[end.mIndex].subpiece(0, end.mOffset + 1));
-    }
-
-    if (res.size() <= 1) {
-        out.push_back(res.front());
-    } else {
-        MemPiece last = res.front();
-        res.pop_front();
+  if (res.size() <= 1) {
+    out.push_back(res.front());
+  } else {
+    MemPiece last(res.front());
+    res.pop_front();
+    out.push_back(last);
+    for (; !res.empty(); res.pop_front()) {
+      const MemPiece &p = res.front();
+      if (p.data() == last.data() + last.length()) {
+        last = MemPiece(last.data(), last.length() + p.length());
+        out.pop_back();
         out.push_back(last);
-        for(; !res.empty(); res.pop_front()) {
-            const MemPiece& p = res.front();
-            if (p.data() == last.data() + last.length()) {
-                last = MemPiece(last.data(), last.length() + p.length());
-                out.pop_back();
-                out.push_back(last);
-            } else {
-                last = p;
-                out.push_back(last);
-            }
-        }
+      } else {
+        last = p;
+        out.push_back(last);
+      }
     }
+  }
 }
 
-void BookmarkInputStream::inc(Location& loc)
-{
-    ++loc.mOffset;
-    if (loc.mOffset == mBuffers[loc.mIndex].length()) {
-        loc.mOffset = 0;
-        ++loc.mIndex;
-    }
+void BookmarkInputStream::inc(Location &loc) {
+  ++loc.mOffset;
+  if (loc.mOffset == mBuffers[loc.mIndex].length()) {
+    loc.mOffset = 0;
+    ++loc.mIndex;
+  }
 }
 
 } // namespace http

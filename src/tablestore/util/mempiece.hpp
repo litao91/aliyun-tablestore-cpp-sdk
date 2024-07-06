@@ -55,14 +55,14 @@ template <class T, class Enable = void> struct FromMemPiece {};
  */
 class MemPiece {
 public:
-  explicit MemPiece() : mData(NULL), mLen(0) {}
+  MemPiece() : mData(NULL), mLen(0) {}
 
-  explicit MemPiece(const void *data, int64_t len)
+  MemPiece(const void *data, int64_t len)
       : mData(static_cast<const uint8_t *>(data)), mLen(len) {}
 
-  explicit MemPiece(MemPiece &&ano) = default;
+  MemPiece(MemPiece &&ano) = default;
   // TODO: dangerous
-  explicit MemPiece(const MemPiece &ano) = default;
+  MemPiece(const MemPiece &ano) = default;
 
   MemPiece &operator=(MemPiece &&ano) = default;
   // TODO: dangerous
@@ -163,14 +163,11 @@ public:
       : mBegin(static_cast<uint8_t *>(begin)),
         mEnd(static_cast<uint8_t *>(end)) {}
 
-  explicit MutableMemPiece(MutableMemPiece &&a) { *this = std::move(a); }
+  MutableMemPiece(MutableMemPiece &&a) = default;
+  MutableMemPiece(const MutableMemPiece &a) = default;
 
-  MutableMemPiece &operator=(MutableMemPiece &&a) {
-    mBegin = a.begin();
-    mEnd = a.end();
-    a.reset();
-    return *this;
-  }
+  MutableMemPiece &operator=(MutableMemPiece &&a) = default;
+  MutableMemPiece &operator=(const MutableMemPiece &a) = default;
 
   void reset() {
     mBegin = NULL;

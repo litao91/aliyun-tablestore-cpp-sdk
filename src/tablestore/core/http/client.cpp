@@ -271,7 +271,7 @@ void ClientImpl::issue(
         .what("HTTP: Start request timer.");
     ctx->mPath = path;
     ctx->mBody =  std::move(body);
-    moveAssign(ctx->mAdditionalHeaders, std::move(additionalHeaders));
+    ctx->mAdditionalHeaders = std::move(additionalHeaders);
     ctx->mRespCb = respCb;
     ctx->mResponseReader.reset(new ResponseReader(mLogger, ctx->mTracker));
     mAsio.asyncBorrowConnection(
@@ -485,9 +485,9 @@ void ClientImpl::invokeCallback(
     } else {
         giveBackConnection(ctx);
         InplaceHeaders headers;
-        moveAssign(headers, std::move(ctx->mResponseReader->mutableHeaders()));
+        headers = std::move(ctx->mResponseReader->mutableHeaders());
         deque<MemPiece> body;
-        moveAssign(body, std::move(ctx->mResponseReader->mutableBody()));
+        body = std::move(ctx->mResponseReader->mutableBody());
         int64_t httpStatus = ctx->mResponseReader->httpStatus();
         OTS_LOG_DEBUG(mLogger)
             ("Tracker", ctx->mTracker)
