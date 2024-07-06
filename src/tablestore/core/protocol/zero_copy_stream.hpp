@@ -68,7 +68,7 @@ public:
     bool Next(void** data, int* size);
     void BackUp(int count);
     int64_t ByteCount() const;
-    util::MoveHolder<std::deque<util::MemPiece> > pieces();
+    std::deque<util::MemPiece> pieces();
 
 private:
     util::MemPool* mMemPool;

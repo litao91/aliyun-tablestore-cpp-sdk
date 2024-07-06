@@ -30,9 +30,9 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "async_client.hpp"
-#include "sync_client.hpp"
-#include "async_client_base.hpp"
 #include "api_traits.hpp"
+#include "async_client_base.hpp"
+#include "sync_client.hpp"
 
 using namespace std;
 
@@ -46,185 +46,155 @@ namespace impl {
 
 namespace {
 
-template<Action kAction>
-struct Context: public AsyncClientBase::Context<kAction>
-{
-    typedef typename ApiTraits<kAction>::ApiRequest ApiRequest;
-    typedef typename ApiTraits<kAction>::ApiResponse ApiResponse;
+template <Action kAction>
+struct Context : public AsyncClientBase::Context<kAction> {
+  typedef typename ApiTraits<kAction>::ApiRequest ApiRequest;
+  typedef typename ApiTraits<kAction>::ApiResponse ApiResponse;
 
-    explicit Context(
-        AsyncClientBase& base,
-        const Tracker& tracker,
-        ApiRequest& req,
-        const function<void(ApiRequest&, std::optional<OTSError>&, ApiResponse&)>& userCb)
+  explicit Context(AsyncClientBase &base, const Tracker &tracker,
+                   ApiRequest &&req,
+                   const function<void(ApiRequest &, std::optional<OTSError> &,
+                                       ApiResponse &)> &userCb)
       : AsyncClientBase::Context<kAction>(base, tracker),
-        mUserCb(userCb)
-    {
-        moveAssign(mApiRequest, util::move(req));
-    }
+        mApiRequest(std::move(req)), mUserCb(userCb) {}
 
-    void wrapCallback(
-        std::optional<OTSError>& err,
-        ApiResponse& resp)
-    {
-        mUserCb(mApiRequest, err, resp);
-    }
+  void wrapCallback(std::optional<OTSError> &err, ApiResponse &resp) {
+    mUserCb(mApiRequest, err, resp);
+  }
 
-    ApiRequest mApiRequest;
-    function<void(ApiRequest&, std::optional<OTSError>&, ApiResponse&)> mUserCb;
+  ApiRequest mApiRequest;
+  function<void(ApiRequest &, std::optional<OTSError> &, ApiResponse &)>
+      mUserCb;
 };
 
-template<Action kAction>
-void go(
-    AsyncClientBase& base,
-    typename ApiTraits<kAction>::ApiRequest& req,
-    const function<void(
-        typename ApiTraits<kAction>::ApiRequest&,
-        std::optional<OTSError>&,
-        typename ApiTraits<kAction>::ApiResponse&)>& cb)
-{
-    typedef Context<kAction> Ctx;
+template <Action kAction>
+void go(AsyncClientBase &base, typename ApiTraits<kAction>::ApiRequest &&req,
+        const function<void(typename ApiTraits<kAction>::ApiRequest &,
+                            std::optional<OTSError> &,
+                            typename ApiTraits<kAction>::ApiResponse &)> &cb) {
+  using Ctx = Context<kAction>;
 
-    Tracker tracker(Tracker::create(base.randomGenerator()));
-    unique_ptr<Ctx> ctx(new Ctx(base, tracker, req, cb));
-    std::optional<OTSError> err = ctx->build(
-        ctx->mApiRequest,
-        bind(&Ctx::wrapCallback, &*ctx, _1, _2));
-    if (err) {
-        typename ApiTraits<kAction>::ApiResponse resp;
-        cb(ctx->mApiRequest, err, resp);
-    } else {
-        ctx.release()->issue();
-    }
+  Tracker tracker(Tracker::create(base.randomGenerator()));
+  auto ctx = std::make_unique<Ctx>(base, tracker, std::move(req), cb);
+  std::optional<OTSError> err =
+      ctx->build(ctx->mApiRequest,
+                 [&ctx_ = *ctx](auto &e, auto &r) { ctx_.wrapCallback(e, r); });
+  if (err) {
+    typename ApiTraits<kAction>::ApiResponse resp;
+    cb(ctx->mApiRequest, err, resp);
+  } else {
+    ctx.release()->issue();
+  }
 }
 
 } // namespace
 
-AsyncClient::AsyncClient(impl::AsyncClientBase* ac)
-  : mAsyncClient(ac)
-{}
+AsyncClient::AsyncClient(impl::AsyncClientBase *ac) : mAsyncClient(ac) {}
 
-AsyncClient::AsyncClient(SyncClient& client)
-  : mAsyncClient(client.mAsyncClient)
-{}
+AsyncClient::AsyncClient(SyncClient &client)
+    : mAsyncClient(client.mAsyncClient) {}
 
-util::Logger& AsyncClient::mutableLogger()
-{
-    return mAsyncClient->mutableLogger();
+util::Logger &AsyncClient::mutableLogger() {
+  return mAsyncClient->mutableLogger();
 }
 
-const deque<shared_ptr<util::Actor> >& AsyncClient::actors() const
-{
-    return mAsyncClient->actors();
+const deque<shared_ptr<util::Actor>> &AsyncClient::actors() const {
+  return mAsyncClient->actors();
 }
 
-const RetryStrategy& AsyncClient::retryStrategy() const
-{
-    return mAsyncClient->retryStrategy();
+const RetryStrategy &AsyncClient::retryStrategy() const {
+  return mAsyncClient->retryStrategy();
 }
 
 void AsyncClient::createTable(
-    CreateTableRequest& req,
-    const function<void(
-        CreateTableRequest&, std::optional<OTSError>&, CreateTableResponse&)>& cb)
-{
-    go<kApi_CreateTable>(*mAsyncClient, req, cb);
+    CreateTableRequest &&req,
+    const function<void(CreateTableRequest &, std::optional<OTSError> &,
+                        CreateTableResponse &)> &cb) {
+  go<kApi_CreateTable>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::deleteTable(
-    DeleteTableRequest& req,
-    const function<void(
-        DeleteTableRequest&, std::optional<OTSError>&, DeleteTableResponse&)>& cb)
-{
-    go<kApi_DeleteTable>(*mAsyncClient, req, cb);
+    DeleteTableRequest &&req,
+    const function<void(DeleteTableRequest &, std::optional<OTSError> &,
+                        DeleteTableResponse &)> &cb) {
+  go<kApi_DeleteTable>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::listTable(
-    ListTableRequest& req,
-    const function<void(
-        ListTableRequest&, std::optional<OTSError>&, ListTableResponse&)>& cb)
-{
-    go<kApi_ListTable>(*mAsyncClient, req, cb);
+    ListTableRequest &&req,
+    const function<void(ListTableRequest &, std::optional<OTSError> &,
+                        ListTableResponse &)> &cb) {
+  go<kApi_ListTable>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::describeTable(
-    DescribeTableRequest& req,
-    const function<void(
-        DescribeTableRequest&, std::optional<OTSError>&, DescribeTableResponse&)>& cb)
-{
-    go<kApi_DescribeTable>(*mAsyncClient, req, cb);
+    DescribeTableRequest &&req,
+    const function<void(DescribeTableRequest &, std::optional<OTSError> &,
+                        DescribeTableResponse &)> &cb) {
+  go<kApi_DescribeTable>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::updateTable(
-    UpdateTableRequest& req,
-    const function<void(
-        UpdateTableRequest&, std::optional<OTSError>&, UpdateTableResponse&)>& cb)
-{
-    go<kApi_UpdateTable>(*mAsyncClient, req, cb);
+    UpdateTableRequest &&req,
+    const function<void(UpdateTableRequest &, std::optional<OTSError> &,
+                        UpdateTableResponse &)> &cb) {
+  go<kApi_UpdateTable>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::getRange(
-    GetRangeRequest& req,
-    const function<void(
-        GetRangeRequest&, std::optional<OTSError>&, GetRangeResponse&)>& cb)
-{
-    go<kApi_GetRange>(*mAsyncClient, req, cb);
+    GetRangeRequest &&req,
+    const function<void(GetRangeRequest &, std::optional<OTSError> &,
+                        GetRangeResponse &)> &cb) {
+  go<kApi_GetRange>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::putRow(
-    PutRowRequest& req,
-    const function<void(
-        PutRowRequest&, std::optional<OTSError>&, PutRowResponse&)>& cb)
-{
-    go<kApi_PutRow>(*mAsyncClient, req, cb);
+    PutRowRequest &&req,
+    const function<void(PutRowRequest &, std::optional<OTSError> &,
+                        PutRowResponse &)> &cb) {
+  go<kApi_PutRow>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::getRow(
-    GetRowRequest& req,
-    const function<void(
-        GetRowRequest&, std::optional<OTSError>&, GetRowResponse&)>& cb)
-{
-    go<kApi_GetRow>(*mAsyncClient, req, cb);
+    GetRowRequest &&req,
+    const function<void(GetRowRequest &, std::optional<OTSError> &,
+                        GetRowResponse &)> &cb) {
+  go<kApi_GetRow>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::updateRow(
-    UpdateRowRequest& req,
-    const function<void(
-        UpdateRowRequest&, std::optional<OTSError>&, UpdateRowResponse&)>& cb)
-{
-    go<kApi_UpdateRow>(*mAsyncClient, req, cb);
+    UpdateRowRequest &&req,
+    const function<void(UpdateRowRequest &, std::optional<OTSError> &,
+                        UpdateRowResponse &)> &cb) {
+  go<kApi_UpdateRow>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::deleteRow(
-    DeleteRowRequest& req,
-    const function<void(
-        DeleteRowRequest&, std::optional<OTSError>&, DeleteRowResponse&)>& cb)
-{
-    go<kApi_DeleteRow>(*mAsyncClient, req, cb);
+    DeleteRowRequest &&req,
+    const function<void(DeleteRowRequest &, std::optional<OTSError> &,
+                        DeleteRowResponse &)> &cb) {
+  go<kApi_DeleteRow>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::batchGetRow(
-    BatchGetRowRequest& req,
-    const function<void(
-        BatchGetRowRequest&, std::optional<OTSError>&, BatchGetRowResponse&)>& cb)
-{
-    go<kApi_BatchGetRow>(*mAsyncClient, req, cb);
+    BatchGetRowRequest &&req,
+    const function<void(BatchGetRowRequest &, std::optional<OTSError> &,
+                        BatchGetRowResponse &)> &cb) {
+  go<kApi_BatchGetRow>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::batchWriteRow(
-    BatchWriteRowRequest& req,
-    const function<void(
-        BatchWriteRowRequest&, std::optional<OTSError>&, BatchWriteRowResponse&)>& cb)
-{
-    go<kApi_BatchWriteRow>(*mAsyncClient, req, cb);
+    BatchWriteRowRequest &&req,
+    const function<void(BatchWriteRowRequest &, std::optional<OTSError> &,
+                        BatchWriteRowResponse &)> &cb) {
+  go<kApi_BatchWriteRow>(*mAsyncClient, std::move(req), cb);
 }
 
 void AsyncClient::computeSplitsBySize(
-    ComputeSplitsBySizeRequest& req,
-    const function<void(
-        ComputeSplitsBySizeRequest&, std::optional<OTSError>&, ComputeSplitsBySizeResponse&)>& cb)
-{
-    go<kApi_ComputeSplitsBySize>(*mAsyncClient, req, cb);
+    ComputeSplitsBySizeRequest &&req,
+    const function<void(ComputeSplitsBySizeRequest &, std::optional<OTSError> &,
+                        ComputeSplitsBySizeResponse &)> &cb) {
+  go<kApi_ComputeSplitsBySize>(*mAsyncClient, std::move(req), cb);
 }
 
 } // namespace impl

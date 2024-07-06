@@ -32,16 +32,14 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include "tablestore/util/move.hpp"
-#include "tablestore/util/timestamp.hpp"
 #include "tablestore/util/prettyprint.hpp"
-#include <boost/noncopyable.hpp>
+#include "tablestore/util/timestamp.hpp"
 #include <boost/atomic.hpp>
+#include <boost/noncopyable.hpp>
 #include <functional>
 #include <memory>
-#include <memory>
-#include <string>
 #include <stdint.h>
+#include <string>
 
 namespace aliyun {
 namespace tablestore {
@@ -51,96 +49,90 @@ namespace impl {
 class Thread;
 } // namespace impl
 
-class Thread: private boost::noncopyable
-{
+class Thread : private boost::noncopyable {
 public:
-    explicit Thread(const std::function<void()>&);
-    explicit Thread();
-    explicit Thread(const MoveHolder<Thread>&);
-    Thread& operator=(const MoveHolder<Thread>&);
+  explicit Thread(const std::function<void()> &);
+  explicit Thread();
+  explicit Thread(Thread &&);
+  Thread &operator=(Thread &&);
 
-    ~Thread();
-    void join();
+  ~Thread();
+  void join();
 
 private:
-    impl::Thread* mImpl;
+  impl::Thread *mImpl;
 };
 
 namespace impl {
 class Mutex;
 } // namespace impl
 
-class Mutex: private boost::noncopyable
-{
+class Mutex : private boost::noncopyable {
 public:
-    explicit Mutex();
-    ~Mutex();
+  explicit Mutex();
+  ~Mutex();
 
-    void lock();
-    void unlock();
+  void lock();
+  void unlock();
 
 private:
-    impl::Mutex* mMutex;
+  impl::Mutex *mMutex;
 };
 
-class ScopedLock: private boost::noncopyable
-{
+class ScopedLock : private boost::noncopyable {
 public:
-    explicit ScopedLock(Mutex& mutex);
-    ~ScopedLock();
+  explicit ScopedLock(Mutex &mutex);
+  ~ScopedLock();
 
 private:
-    Mutex& mMutex;
+  Mutex &mMutex;
 };
 
 namespace impl {
 class Semaphore;
 } // namespace impl
 
-class Semaphore: private boost::noncopyable
-{
+class Semaphore : private boost::noncopyable {
 public:
-    enum Status
-    {
-        kInTime,
-        kTimeout,
-    };
+  enum Status {
+    kInTime,
+    kTimeout,
+  };
 
-    explicit Semaphore(int64_t init);
-    ~Semaphore();
+  explicit Semaphore(int64_t init);
+  ~Semaphore();
 
-    void post();
-    void wait();
-    Status waitFor(Duration);
+  void post();
+  void wait();
+  Status waitFor(Duration);
 
 private:
-    impl::Semaphore* mImpl;
+  impl::Semaphore *mImpl;
 };
 
 namespace impl {
 class ActionQueue;
 } // namespace impl
 
-class Actor
-{
-    static const int64_t kMaxBatchSize = 1000;
+class Actor {
+  static const int64_t kMaxBatchSize = 1000;
 
 public:
-    typedef std::function<void()> Action;
+  typedef std::function<void()> Action;
 
-    explicit Actor();
-    ~Actor();
+  explicit Actor();
+  ~Actor();
 
-    void pushBack(const Action&);
-
-private:
-    void acting();
+  void pushBack(const Action &);
 
 private:
-    Thread mThread;
-    Semaphore mSem;
-    boost::atomic<bool> mStopper;
-    impl::ActionQueue* mScript;
+  void acting();
+
+private:
+  Thread mThread;
+  Semaphore mSem;
+  boost::atomic<bool> mStopper;
+  impl::ActionQueue *mScript;
 };
 
 } // namespace util
@@ -150,10 +142,10 @@ private:
 namespace pp {
 namespace impl {
 
-template<>
-struct PrettyPrinter<aliyun::tablestore::util::Semaphore::Status, void>
-{
-    void operator()(std::string&, aliyun::tablestore::util::Semaphore::Status) const;
+template <>
+struct PrettyPrinter<aliyun::tablestore::util::Semaphore::Status, void> {
+  void operator()(std::string &,
+                  aliyun::tablestore::util::Semaphore::Status) const;
 };
 
 } // namespace impl

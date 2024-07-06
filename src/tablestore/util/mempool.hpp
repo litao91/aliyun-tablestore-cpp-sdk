@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/mempiece.hpp"
 #include "tablestore/util/random.hpp"
 
-#include "tablestore/util/move.hpp"
 #include <boost/atomic.hpp>
 #include <memory>
 #include <stdint.h>
@@ -75,9 +74,9 @@ public:
 
     explicit BlockHolder(Block *blk) : mInner(blk) { OTS_ASSERT(blk != NULL); }
 
-    explicit BlockHolder(const MoveHolder<BlockHolder> &a) { *this = a; }
+    explicit BlockHolder(BlockHolder &&a) { *this = std::move(a); }
 
-    BlockHolder &operator=(const MoveHolder<BlockHolder> &a);
+    BlockHolder &operator=(BlockHolder &&a);
 
     MemPiece piece() const;
     MutableMemPiece mutablePiece();

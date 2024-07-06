@@ -25,7 +25,7 @@ std::optional<OTSError> issueError(const char* filename, int line)
     e.mutableMessage().append(filename);
     e.mutableMessage().push_back(':');
     pp::prettyPrint(e.mutableMessage(), line);
-    return std::optional<OTSError>(util::move(e));
+    return std::optional<OTSError>(std::move(e));
 }
 
 } // namespace
@@ -450,7 +450,7 @@ std::optional<OTSError> readRows(IVector<Row>& out, uint8_t const *& b, uint8_t 
     for(; b < e;) {
         Row row;
         TRY(impl::readRow(row, b, e));
-        moveAssign(out.append(), util::move(row));
+        moveAssign(out.append(), std::move(row));
     }
     return std::optional<OTSError>();
 }

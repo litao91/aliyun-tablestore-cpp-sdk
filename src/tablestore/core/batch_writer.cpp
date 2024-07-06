@@ -54,32 +54,32 @@ std::optional<OTSError> BatchWriterConfig::validate() const
     if (mMaxConcurrency < 1) {
         OTSError e(OTSError::kPredefined_OTSParameterInvalid);
         e.mutableMessage() = "Max concurrency must be positive.";
-        return std::optional<OTSError>(util::move(e));
+        return std::optional<OTSError>(std::move(e));
     }
     if (mMaxBatchSize < 1) {
         OTSError e(OTSError::kPredefined_OTSParameterInvalid);
         e.mutableMessage() = "Max batch size must be positive.";
-        return std::optional<OTSError>(util::move(e));
+        return std::optional<OTSError>(std::move(e));
     }
     if (mRegularNap <= Duration::fromMsec(1)) {
         OTSError e(OTSError::kPredefined_OTSParameterInvalid);
         e.mutableMessage() = "Regular nap must be greater than one msec.";
-        return std::optional<OTSError>(util::move(e));
+        return std::optional<OTSError>(std::move(e));
     }
     if (mMaxNap < mRegularNap * 2) {
         OTSError e(OTSError::kPredefined_OTSParameterInvalid);
         e.mutableMessage() = "Max nap must be longer than twice regular period.";
-        return std::optional<OTSError>(util::move(e));
+        return std::optional<OTSError>(std::move(e));
     }
     if (mNapShrinkStep <= Duration::fromSec(0)) {
         OTSError e(OTSError::kPredefined_OTSParameterInvalid);
         e.mutableMessage() = "Each step on shrinking nap must be positive.";
-        return std::optional<OTSError>(util::move(e));
+        return std::optional<OTSError>(std::move(e));
     }
     if (mActors && mActors->size() == 0) {
         OTSError e(OTSError::kPredefined_OTSParameterInvalid);
         e.mutableMessage() = "Number of invoking-callback threads must be positive.";
-        return std::optional<OTSError>(util::move(e));
+        return std::optional<OTSError>(std::move(e));
     }
     return std::optional<OTSError>();
 }
@@ -109,8 +109,8 @@ void callback(
     std::optional<OTSError>& inErr,
     Response& inResp)
 {
-    moveAssign(outErr, util::move(inErr));
-    moveAssign(outResp, util::move(inResp));
+    outErr =  std::::move(inErr));
+    outResp = std::move(inResp);
     sem.post();
 }
 

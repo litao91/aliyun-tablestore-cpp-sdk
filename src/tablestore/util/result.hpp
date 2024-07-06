@@ -34,96 +34,71 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TABLESTORE_UTIL_RESULT_HPP
 
 #include "tablestore/util/assert.hpp"
-#include "tablestore/util/move.hpp"
 
 namespace aliyun {
 namespace tablestore {
 namespace util {
 
-template<class OkType, class ErrType>
-class Result
-{
-    enum ResultType
-    {
-        OK,
-        ERROR,
-    };
+template <class OkType, class ErrType> class Result {
+  enum ResultType {
+    OK,
+    ERROR,
+  };
 
 public:
-    explicit Result()
-      : mResultType(OK),
-        mOkValue(),
-        mErrValue()
-    {}
+  explicit Result() : mResultType(OK), mOkValue(), mErrValue() {}
 
-    explicit Result(const util::MoveHolder<Result<OkType, ErrType> >& a)
-    {
-        *this = a;
-    }
+  explicit Result(const Result &&a) = default;
+  explicit Result(Result &a) = default;
 
-    Result<OkType, ErrType>& operator=(
-        const util::MoveHolder<Result<OkType, ErrType> >& a)
-    {
-        util::moveAssign(mResultType, util::move(a->mResultType));
-        util::moveAssign(mOkValue, util::move(a->mOkValue));
-        util::moveAssign(mErrValue, util::move(a->mErrValue));
-        return *this;
-    }
+  Result &operator=(Result &&a) = default;
 
-    void reset()
+  void reset() {
+    mResultType = OK;
     {
-        mResultType = OK;
-        {
-            OkType empty = OkType();
-            util::moveAssign(mOkValue, util::move(empty));
-        }
-        {
-            ErrType empty = ErrType();
-            util::moveAssign(mErrValue, util::move(empty));
-        }
+      OkType empty = OkType();
+      mOkValue = std::move(empty);
     }
+    {
+      ErrType empty = ErrType();
+      mErrValue = std::move(empty);
+    }
+  }
 
-    bool ok() const
-    {
-        return mResultType == OK;
-    }
+  bool ok() const { return mResultType == OK; }
 
-    const OkType& okValue() const
-    {
-        OTS_ASSERT(ok());
-        return mOkValue;
-    }
+  const OkType &okValue() const {
+    OTS_ASSERT(ok());
+    return mOkValue;
+  }
 
-    OkType& mutableOkValue()
+  OkType &mutableOkValue() {
+    mResultType = OK;
     {
-        mResultType = OK;
-        {
-            ErrType empty = ErrType();
-            util::moveAssign(mErrValue, util::move(empty));
-        }
-        return mOkValue;
+      ErrType empty = ErrType();
+      mErrValue = std::move(empty);
     }
+    return mOkValue;
+  }
 
-    const ErrType& errValue() const
-    {
-        OTS_ASSERT(!ok());
-        return mErrValue;
-    }
+  const ErrType &errValue() const {
+    OTS_ASSERT(!ok());
+    return mErrValue;
+  }
 
-    ErrType& mutableErrValue()
+  ErrType &mutableErrValue() {
+    mResultType = ERROR;
     {
-        mResultType = ERROR;
-        {
-            OkType empty = OkType();
-            util::moveAssign(mOkValue, util::move(empty));
-        }
-        return mErrValue;
+      OkType empty = OkType();
+      mOkValue = std::move(empty);
     }
+    return mErrValue;
+  }
 
 private:
-    ResultType mResultType;
-    OkType mOkValue;
-    ErrType mErrValue;
+  ResultType mResultType;
+  OkType mOkValue;
+  ErrType mErrValue;
 };
 
 } // namespace util

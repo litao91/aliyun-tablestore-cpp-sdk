@@ -164,7 +164,7 @@ void Testbench::operator()(
         OTS_LOG_DEBUG(*mRootLogger)
             ("Error", *err)
             .what("FT: fail to create table");
-        moveAssign(mOutError, util::move(err));
+        moveAssign(mOutError, std::move(err));
         asyncDeleteTable();
     } else {
         OTS_LOG_DEBUG(*mRootLogger)
@@ -183,7 +183,7 @@ void Testbench::operator()(
             ("Error", *err)
             .what("FT: fail to delete table");
         if (!mOutError) {
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
         }
     } else {
         OTS_LOG_DEBUG(*mRootLogger)
@@ -241,11 +241,11 @@ public:
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to list table");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
         } else {
             OTS_LOG_DEBUG(testbench().logger())
                 .what("FT: done");
-            moveAssign(mOutResp, util::move(resp));
+            moveAssign(mOutResp, std::move(resp));
         }
         testbench().asyncDeleteTable();
     }
@@ -303,11 +303,11 @@ public:
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to describe table");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
         } else {
             OTS_LOG_DEBUG(testbench().logger())
                 .what("FT: table described");
-            moveAssign(mOutResp, util::move(resp));
+            moveAssign(mOutResp, std::move(resp));
         }
         testbench().asyncDeleteTable();
     }
@@ -368,12 +368,12 @@ public:
         std::optional<OTSError>& err,
         UpdateTableResponse& resp)
     {
-        moveAssign(mUpdateTableRequest, util::move(req));
+        moveAssign(mUpdateTableRequest, std::move(req));
         if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to update table");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
@@ -393,11 +393,11 @@ public:
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to describe table");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
         } else {
             OTS_LOG_DEBUG(testbench().logger())
                 .what("FT: table described");
-            moveAssign(mDescribeTableResponse, util::move(resp));
+            moveAssign(mDescribeTableResponse, std::move(resp));
         }
         testbench().asyncDeleteTable();
     }
@@ -459,18 +459,18 @@ public:
         std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
-        moveAssign(mPutRowRequest, util::move(req));
+        moveAssign(mPutRowRequest, std::move(req));
         if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
                 .what("FT: row put");
             Thread t(bind(&PutRowTrial::readRows, this));
-            moveAssign(mReadRowsThread, util::move(t));
+            moveAssign(mReadRowsThread, std::move(t));
         }
     }
 
@@ -491,7 +491,7 @@ public:
                 OTS_LOG_DEBUG(testbench().logger())
                     ("Error", *e)
                     .what("RI: Error on range iterator");
-                moveAssign(mOutError, util::move(e));
+                moveAssign(mOutError, std::move(e));
                 break;
             }
             if (!iter.valid()) {
@@ -501,7 +501,7 @@ public:
                 break;
             }
             mResultRows.push_back(Row());
-            moveAssign(mResultRows.back(), util::move(iter.get()));
+            moveAssign(mResultRows.back(), std::move(iter.get()));
         }
         testbench().asyncDeleteTable();
     }
@@ -572,12 +572,12 @@ public:
         std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
-        moveAssign(mPutRowRequest, util::move(req));
+        moveAssign(mPutRowRequest, std::move(req));
         if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
@@ -601,12 +601,12 @@ public:
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to get hit-row");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
                 .what("FT: hit-row read");
-            moveAssign(mGetRowRespHit, util::move(resp));
+            moveAssign(mGetRowRespHit, std::move(resp));
 
             GetRowRequest req;
             req.mutableQueryCriterion().mutableTable() = testbench().caseName();
@@ -627,12 +627,12 @@ public:
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to get miss-row");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
                 .what("FT: miss-row read");
-            moveAssign(mGetRowRespMiss, util::move(resp));
+            moveAssign(mGetRowRespMiss, std::move(resp));
             testbench().asyncDeleteTable();
         }
     }
@@ -716,12 +716,12 @@ public:
         std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
-        moveAssign(mPutRowRequest, util::move(req));
+        moveAssign(mPutRowRequest, std::move(req));
         if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
@@ -737,18 +737,18 @@ public:
         std::optional<OTSError>& err,
         UpdateRowResponse& resp)
     {
-        moveAssign(mUpdateRowRequest, util::move(req));
+        moveAssign(mUpdateRowRequest, std::move(req));
         if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to update row");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
                 .what("FT: row updated");
             Thread t(bind(&UpdateRowTrial::readRows, this));
-            moveAssign(mReadRowsThread, util::move(t));
+            moveAssign(mReadRowsThread, std::move(t));
         }
     }
 
@@ -769,7 +769,7 @@ public:
                 OTS_LOG_DEBUG(testbench().logger())
                     ("Error", *e)
                     .what("RI: Error on range iterator");
-                moveAssign(mOutError, util::move(e));
+                moveAssign(mOutError, std::move(e));
                 break;
             }
             if (!iter.valid()) {
@@ -779,7 +779,7 @@ public:
                 break;
             }
             mResultRows.push_back(Row());
-            moveAssign(mResultRows.back(), util::move(iter.get()));
+            moveAssign(mResultRows.back(), std::move(iter.get()));
         }
         testbench().asyncDeleteTable();
     }
@@ -905,12 +905,12 @@ public:
         std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
-        moveAssign(mPutRowRequest, util::move(req));
+        moveAssign(mPutRowRequest, std::move(req));
         if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
@@ -934,13 +934,13 @@ public:
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to update row");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
                 .what("FT: row updated");
             Thread t(bind(&DeleteRowTrial::readRows, this));
-            moveAssign(mReadRowsThread, util::move(t));
+            moveAssign(mReadRowsThread, std::move(t));
         }
     }
 
@@ -961,7 +961,7 @@ public:
                 OTS_LOG_DEBUG(testbench().logger())
                     ("Error", *e)
                     .what("RI: Error on range iterator");
-                moveAssign(mOutError, util::move(e));
+                moveAssign(mOutError, std::move(e));
                 break;
             }
             if (!iter.valid()) {
@@ -971,7 +971,7 @@ public:
                 break;
             }
             mResultRows.push_back(Row());
-            moveAssign(mResultRows.back(), util::move(iter.get()));
+            moveAssign(mResultRows.back(), std::move(iter.get()));
         }
         testbench().asyncDeleteTable();
     }
@@ -1038,12 +1038,12 @@ public:
         std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
-        moveAssign(mPutRowRequest, util::move(req));
+        moveAssign(mPutRowRequest, std::move(req));
         if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
@@ -1059,17 +1059,17 @@ public:
         std::optional<OTSError>& err,
         BatchGetRowResponse& resp)
     {
-        moveAssign(mBgrRequest, util::move(req));
+        moveAssign(mBgrRequest, std::move(req));
         if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to batch get rows");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
                 .what("FT: rows gotten in a batch");
-            moveAssign(mBgrResp, util::move(resp));
+            moveAssign(mBgrResp, std::move(resp));
             testbench().asyncDeleteTable();
         }
     }
@@ -1176,12 +1176,12 @@ public:
         std::optional<OTSError>& err,
         PutRowResponse& resp)
     {
-        moveAssign(mPutRowRequest, util::move(req));
+        moveAssign(mPutRowRequest, std::move(req));
         if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
@@ -1197,19 +1197,19 @@ public:
         std::optional<OTSError>& err,
         BatchWriteRowResponse& resp)
     {
-        moveAssign(mBwrRequest, util::move(req));
+        moveAssign(mBwrRequest, std::move(req));
         if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to batch get rows");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
                 .what("FT: rows gotten in a batch");
-            moveAssign(mBwrResponse, util::move(resp));
+            moveAssign(mBwrResponse, std::move(resp));
             Thread t(bind(&BatchWriteRowTrial::readRows, this));
-            moveAssign(mReadRowsThread, util::move(t));
+            moveAssign(mReadRowsThread, std::move(t));
         }
     }
 
@@ -1230,7 +1230,7 @@ public:
                 OTS_LOG_DEBUG(testbench().logger())
                     ("Error", *e)
                     .what("RI: Error on range iterator");
-                moveAssign(mOutError, util::move(e));
+                moveAssign(mOutError, std::move(e));
                 break;
             }
             if (!iter.valid()) {
@@ -1240,7 +1240,7 @@ public:
                 break;
             }
             mResultRows.push_back(Row());
-            moveAssign(mResultRows.back(), util::move(iter.get()));
+            moveAssign(mResultRows.back(), std::move(iter.get()));
         }
         testbench().asyncDeleteTable();
     }
@@ -1379,17 +1379,17 @@ public:
         std::optional<OTSError>& err,
         ComputeSplitsBySizeResponse& resp)
     {
-        moveAssign(mReq, util::move(req));
+        moveAssign(mReq, std::move(req));
         if (err) {
             OTS_LOG_ERROR(testbench().logger())
                 ("Error", *err)
                 .what("FT: fail to put row");
-            moveAssign(mOutError, util::move(err));
+            moveAssign(mOutError, std::move(err));
             testbench().asyncDeleteTable();
         } else {
             OTS_LOG_DEBUG(testbench().logger())
                 .what("FT: row put");
-            moveAssign(mResp, util::move(resp));
+            moveAssign(mResp, std::move(resp));
             testbench().asyncDeleteTable();
         }
     }

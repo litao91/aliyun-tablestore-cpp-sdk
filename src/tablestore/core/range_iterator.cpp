@@ -73,13 +73,13 @@ public:
     bool push(Item& item)
     {
         Item* x = new Item;
-        moveAssign(*x, util::move(item));
+        moveAssign(*x, std::move(item));
         bool ok = mQueue.push(x);
         if (ok) {
             return true;
         }
         // rollback
-        moveAssign(item, util::move(*x));
+        moveAssign(item, std::move(*x));
         delete x;
         return false;
     }
@@ -91,7 +91,7 @@ public:
         if (!ok) {
             return false;
         }
-        moveAssign(item, util::move(*x));
+        moveAssign(item, std::move(*x));
         delete x;
         return true;
     }
@@ -115,7 +115,7 @@ RangeIterator::RangeIterator(
     mStage(kInit)
 {
     Thread t(bind(&RangeIterator::bgloop, this, boost::ref(cri)));
-    moveAssign(mBgLoopThread, util::move(t));
+    moveAssign(mBgLoopThread, std::move(t));
 }
 
 RangeIterator::~RangeIterator()
@@ -156,10 +156,10 @@ std::optional<OTSError> RangeIterator::moveNext()
             OTS_LOG_INFO(*mLogger)
                 ("Error", result.errValue())
                 .what("iteration meets an error.");
-            return std::optional<OTSError>(util::move(result.mutableErrValue()));
+            return std::optional<OTSError>(std::move(result.mutableErrValue()));
         }
 
-        moveAssign(mCurrentRow, util::move(result.mutableOkValue()));
+        moveAssign(mCurrentRow, std::move(result.mutableOkValue()));
         if (mCurrentRow.primaryKey().size() == 0) {
             // a row with no primary-key columns means the end
             OTS_LOG_INFO(*mLogger)
@@ -192,7 +192,7 @@ void RangeIterator::bgloop(RangeQueryCriterion& cri)
     OTS_LOG_INFO(*mLogger)
         .what("Start iteration.");
     GetRangeRequest req;
-    moveAssign(req.mutableQueryCriterion(), util::move(cri));
+    moveAssign(req.mutableQueryCriterion(), std::move(cri));
     for(;;) {
         GetRangeResponse resp;
         if (mStop.load(boost::memory_order_relaxed)) {
@@ -208,7 +208,7 @@ void RangeIterator::bgloop(RangeQueryCriterion& cri)
                 ("Error", *err)
                 .what("Iteration stops because of an error.");
             Result<Row, OTSError> result;
-            moveAssign(result.mutableErrValue(), util::move(*err));
+            moveAssign(result.mutableErrValue(), std::move(*err));
             if (!push(result)) {
                 OTS_LOG_INFO(*mLogger)
                     .what("Premature stops");
@@ -240,7 +240,7 @@ void RangeIterator::bgloop(RangeQueryCriterion& cri)
             ("RowSize", rows.size());
         for(int64_t i = 0, sz = rows.size(); i < sz; ++i) {
             Result<Row, OTSError> result;
-            moveAssign(result.mutableOkValue(), util::move(rows[i]));
+            moveAssign(result.mutableOkValue(), std::move(rows[i]));
             if (!push(result)) {
                 OTS_LOG_INFO(*mLogger)
                     .what("Premature stops");
@@ -261,7 +261,7 @@ void RangeIterator::bgloop(RangeQueryCriterion& cri)
 
             if (resp.nextStart()) {
                 ScopedLock _(mMutex);
-                moveAssign(mNextStart, util::move(resp.mutableNextStart()));
+                moveAssign(mNextStart, std::move(resp.mutableNextStart()));
             }
             
             // a row with no primary-key column means the end
@@ -277,7 +277,7 @@ void RangeIterator::bgloop(RangeQueryCriterion& cri)
                 .what("Try a next request.");
             moveAssign(
                 req.mutableQueryCriterion().mutableInclusiveStart(),
-                util::move(*resp.mutableNextStart()));
+                std::move(*resp.mutableNextStart()));
         }
     }
 }

@@ -31,10 +31,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "threading.hpp"
 #include "tablestore/util/assert.hpp"
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
 #include <boost/lockfree/queue.hpp>
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 
 using namespace std;
 
@@ -43,16 +43,15 @@ namespace impl {
 
 typedef aliyun::tablestore::util::Semaphore Semaphore;
 void PrettyPrinter<Semaphore::Status, void>::operator()(
-    string& out, Semaphore::Status st) const
-{
-    switch(st) {
-    case Semaphore::kInTime:
-        out.append("Semaphore::kInTime");
-        break;
-    case Semaphore::kTimeout:
-        out.append("Semaphore::kTimeout");
-        break;
-    }
+    string &out, Semaphore::Status st) const {
+  switch (st) {
+  case Semaphore::kInTime:
+    out.append("Semaphore::kInTime");
+    break;
+  case Semaphore::kTimeout:
+    out.append("Semaphore::kTimeout");
+    break;
+  }
 }
 
 } // namespace impl
@@ -64,303 +63,222 @@ namespace util {
 
 namespace impl {
 
-class Thread
-{
+class Thread {
 public:
-    explicit Thread(function<void()> fn)
-      : mImpl(fn)
-    {}
+  explicit Thread(function<void()> fn) : mImpl(fn) {}
 
-    ~Thread()
-    {}
+  ~Thread() {}
 
-    void join()
-    {
-        mImpl.join();
-    }
+  void join() { mImpl.join(); }
 
 private:
-    boost::thread mImpl;
+  boost::thread mImpl;
 };
 
 } // namespace impl
 
-Thread::Thread(const function<void()>& fn)
-  : mImpl(new impl::Thread(fn))
-{}
+Thread::Thread(const function<void()> &fn) : mImpl(new impl::Thread(fn)) {}
 
-Thread::Thread()
-  : mImpl(NULL)
-{}
+Thread::Thread() : mImpl(NULL) {}
 
-Thread::Thread(const MoveHolder<Thread>& a)
-{
-    *this = a;
+Thread::Thread(Thread &&a) { *this = std::move(a); }
+
+Thread &Thread::operator=(Thread &&a) {
+  if (this != &a) {
+    OTS_ASSERT(mImpl == NULL)
+        .what("Being move target of a thread delegate"
+              " requires no thread it delegated to.");
+    mImpl = a.mImpl;
+    a.mImpl = NULL;
+  }
+  return *this;
 }
 
-Thread& Thread::operator=(const MoveHolder<Thread>& a)
-{
-    if (this != &*a) {
-        OTS_ASSERT(mImpl == NULL)
-            .what("Being move target of a thread delegate"
-                " requires no thread it delegated to.");
-        mImpl = a->mImpl;
-        a->mImpl = NULL;
-    }
-    return *this;
-}
+Thread::~Thread() { delete mImpl; }
 
-Thread::~Thread()
-{
+void Thread::join() {
+  if (mImpl != NULL) {
+    mImpl->join();
     delete mImpl;
-}
-
-void Thread::join()
-{
-    if (mImpl != NULL) {
-        mImpl->join();
-        delete mImpl;
-        mImpl = NULL;
-    }
+    mImpl = NULL;
+  }
 }
 
 namespace impl {
 
-class Mutex: private boost::noncopyable
-{
+class Mutex : private boost::noncopyable {
 public:
-    void lock()
-    {
-        mMutex.lock();
-    }
+  void lock() { mMutex.lock(); }
 
-    void unlock()
-    {
-        mMutex.unlock();
-    }
+  void unlock() { mMutex.unlock(); }
 
 private:
-    boost::mutex mMutex;
+  boost::mutex mMutex;
 };
 
 } // namespace impl
 
-Mutex::Mutex()
-  : mMutex(new impl::Mutex())
-{}
+Mutex::Mutex() : mMutex(new impl::Mutex()) {}
 
-Mutex::~Mutex()
-{
-    delete mMutex;
-}
+Mutex::~Mutex() { delete mMutex; }
 
-void Mutex::lock()
-{
-    mMutex->lock();
-}
+void Mutex::lock() { mMutex->lock(); }
 
-void Mutex::unlock()
-{
-    mMutex->unlock();
-}
+void Mutex::unlock() { mMutex->unlock(); }
 
-ScopedLock::ScopedLock(Mutex& mutex)
-  : mMutex(mutex)
-{
-    mMutex.lock();
-}
+ScopedLock::ScopedLock(Mutex &mutex) : mMutex(mutex) { mMutex.lock(); }
 
-ScopedLock::~ScopedLock()
-{
-    mMutex.unlock();
-}
+ScopedLock::~ScopedLock() { mMutex.unlock(); }
 
 namespace impl {
 
-class Semaphore: private boost::noncopyable
-{
+class Semaphore : private boost::noncopyable {
 public:
-    explicit Semaphore(int64_t init)
-      : mAvailable(init)
-    {}
+  explicit Semaphore(int64_t init) : mAvailable(init) {}
 
-    void post()
+  void post() {
     {
-        {
-            boost::unique_lock<boost::mutex> lck(mMutex);
-            ++mAvailable;
-        }
-        mCondVar.notify_one();
+      boost::unique_lock<boost::mutex> lck(mMutex);
+      ++mAvailable;
     }
+    mCondVar.notify_one();
+  }
 
-    void wait()
-    {
-        boost::unique_lock<boost::mutex> lck(mMutex);
-        while(mAvailable == 0) {
-            mCondVar.wait(lck);
-        }
-        --mAvailable;
+  void wait() {
+    boost::unique_lock<boost::mutex> lck(mMutex);
+    while (mAvailable == 0) {
+      mCondVar.wait(lck);
     }
+    --mAvailable;
+  }
 
-    util::Semaphore::Status waitFor(Duration d)
-    {
-        boost::unique_lock<boost::mutex> lck(mMutex);
-        while(mAvailable == 0) {
-            boost::cv_status res = mCondVar.wait_for(lck,
-                boost::chrono::microseconds(d.toUsec()));
-            if (res == boost::cv_status::timeout) {
-                return util::Semaphore::kTimeout;
-            }
-        }
-        --mAvailable;
-        return util::Semaphore::kInTime;
+  util::Semaphore::Status waitFor(Duration d) {
+    boost::unique_lock<boost::mutex> lck(mMutex);
+    while (mAvailable == 0) {
+      boost::cv_status res =
+          mCondVar.wait_for(lck, boost::chrono::microseconds(d.toUsec()));
+      if (res == boost::cv_status::timeout) {
+        return util::Semaphore::kTimeout;
+      }
     }
+    --mAvailable;
+    return util::Semaphore::kInTime;
+  }
 
 private:
-    boost::mutex mMutex;
-    boost::condition_variable mCondVar;
-    int64_t mAvailable;
+  boost::mutex mMutex;
+  boost::condition_variable mCondVar;
+  int64_t mAvailable;
 };
 
 } // namespace impl
 
-Semaphore::Semaphore(int64_t init)
-  : mImpl(new impl::Semaphore(init))
-{}
+Semaphore::Semaphore(int64_t init) : mImpl(new impl::Semaphore(init)) {}
 
-Semaphore::~Semaphore()
-{
-    delete mImpl;
-}
+Semaphore::~Semaphore() { delete mImpl; }
 
-void Semaphore::post()
-{
-    mImpl->post();
-}
+void Semaphore::post() { mImpl->post(); }
 
-void Semaphore::wait()
-{
-    mImpl->wait();
-}
+void Semaphore::wait() { mImpl->wait(); }
 
-Semaphore::Status Semaphore::waitFor(Duration d)
-{
-    return mImpl->waitFor(d);
-}
-
+Semaphore::Status Semaphore::waitFor(Duration d) { return mImpl->waitFor(d); }
 
 namespace impl {
 
-class ActionQueue
-{
+class ActionQueue {
 public:
-    explicit ActionQueue()
-      : mActions(0)
-    {}
-    ~ActionQueue();
+  explicit ActionQueue() : mActions(0) {}
+  ~ActionQueue();
 
-    bool push(const Actor::Action&);
-    bool pop(Actor::Action*);
+  bool push(const Actor::Action &);
+  bool pop(Actor::Action *);
 
 private:
-    struct Item
-    {
-        Actor::Action mAction;
-    };
+  struct Item {
+    Actor::Action mAction;
+  };
 
 private:
-    boost::lockfree::queue<
-        Item*,
-        boost::lockfree::fixed_sized<false> > mActions;
+  boost::lockfree::queue<Item *, boost::lockfree::fixed_sized<false>> mActions;
 };
 
-ActionQueue::~ActionQueue()
-{
-    for(;;) {
-        Item* item = NULL;
-        bool ret = mActions.pop(item);
-        if (ret) {
-            delete item;
-        } else {
-            break;
-        }
-    }
-}
-
-bool ActionQueue::push(const Actor::Action& act)
-{
-    Item* item = new Item();
-    item->mAction = act;
-    bool ret = mActions.push(item);
-    if (!ret) {
-        delete item;
-    }
-    return ret;
-}
-
-bool ActionQueue::pop(Actor::Action* act)
-{
-    Item* item = NULL;
+ActionQueue::~ActionQueue() {
+  for (;;) {
+    Item *item = NULL;
     bool ret = mActions.pop(item);
     if (ret) {
-        *act = item->mAction;
-        delete item;
+      delete item;
+    } else {
+      break;
     }
-    return ret;
+  }
+}
+
+bool ActionQueue::push(const Actor::Action &act) {
+  Item *item = new Item();
+  item->mAction = act;
+  bool ret = mActions.push(item);
+  if (!ret) {
+    delete item;
+  }
+  return ret;
+}
+
+bool ActionQueue::pop(Actor::Action *act) {
+  Item *item = NULL;
+  bool ret = mActions.pop(item);
+  if (ret) {
+    *act = item->mAction;
+    delete item;
+  }
+  return ret;
 }
 
 } // namespace impl
 
-Actor::Actor()
-  : mSem(0),
-    mStopper(false),
-    mScript(new impl::ActionQueue())
-{
-    Thread t(bind(&Actor::acting, this));
-    moveAssign(mThread, util::move(t));
+Actor::Actor() : mSem(0), mStopper(false), mScript(new impl::ActionQueue()) {
+  Thread t(bind(&Actor::acting, this));
+  mThread = std::move(t);
 }
 
-Actor::~Actor()
-{
-    mStopper.store(true, boost::memory_order_release);
-    mSem.post();
-    mThread.join();
-    delete mScript;
+Actor::~Actor() {
+  mStopper.store(true, boost::memory_order_release);
+  mSem.post();
+  mThread.join();
+  delete mScript;
 }
 
-void Actor::pushBack(const Action& act)
-{
-    OTS_ASSERT(!mStopper.load(boost::memory_order_acquire))
-        .what("Should not make a destroying actor do anything.");
-    bool ret = mScript->push(act);
-    OTS_ASSERT(ret);
-    mSem.post();
+void Actor::pushBack(const Action &act) {
+  OTS_ASSERT(!mStopper.load(boost::memory_order_acquire))
+      .what("Should not make a destroying actor do anything.");
+  bool ret = mScript->push(act);
+  OTS_ASSERT(ret);
+  mSem.post();
 }
 
-void Actor::acting()
-{
-    deque<Action> batch;
-    for(;;) {
-        mSem.wait();
-        if (mStopper.load(boost::memory_order_acquire)) {
-            break;
-        }
-
-        batch.clear();
-        for(int64_t i = 0; i < kMaxBatchSize; ++i) {
-            Action act;
-            bool ret = mScript->pop(&act);
-            if (!ret) {
-                break;
-            } else {
-                batch.push_back(act);
-            }
-        }
-        for(; !batch.empty(); batch.pop_front()) {
-            const Action& act = batch.front();
-            act();
-        }
+void Actor::acting() {
+  deque<Action> batch;
+  for (;;) {
+    mSem.wait();
+    if (mStopper.load(boost::memory_order_acquire)) {
+      break;
     }
+
+    batch.clear();
+    for (int64_t i = 0; i < kMaxBatchSize; ++i) {
+      Action act;
+      bool ret = mScript->pop(&act);
+      if (!ret) {
+        break;
+      } else {
+        batch.push_back(act);
+      }
+    }
+    for (; !batch.empty(); batch.pop_front()) {
+      const Action &act = batch.front();
+      act();
+    }
+  }
 }
 
 } // namespace util

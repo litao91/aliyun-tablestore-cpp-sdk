@@ -33,8 +33,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/core/client.hpp"
-#include <memory>
 #include <functional>
+#include <memory>
 
 namespace aliyun {
 namespace tablestore {
@@ -43,79 +43,77 @@ namespace impl {
 class SyncClient;
 class AsyncClientBase;
 
-class AsyncClient: public core::AsyncClient
-{
+class AsyncClient : public core::AsyncClient {
 public:
-    explicit AsyncClient(AsyncClientBase*);
-    explicit AsyncClient(SyncClient&);
+  explicit AsyncClient(AsyncClientBase *);
+  explicit AsyncClient(SyncClient &);
 
-    util::Logger& mutableLogger();
-    const std::deque<std::shared_ptr<util::Actor> >& actors() const;
-    const RetryStrategy& retryStrategy() const;
-    void createTable(
-        CreateTableRequest&,
-        const std::function<void(
-            CreateTableRequest&, std::optional<OTSError>&, CreateTableResponse&)>&);
-    void deleteTable(
-        DeleteTableRequest&,
-        const std::function<void(
-            DeleteTableRequest&, std::optional<OTSError>&, DeleteTableResponse&)>&);
-    void listTable(
-        ListTableRequest&,
-        const std::function<void(
-            ListTableRequest&, std::optional<OTSError>&, ListTableResponse&)>&);
-    void describeTable(
-        DescribeTableRequest&,
-        const std::function<void(
-            DescribeTableRequest&, std::optional<OTSError>&, DescribeTableResponse&)>&);
-    void updateTable(
-        UpdateTableRequest&,
-        const std::function<void(
-            UpdateTableRequest&, std::optional<OTSError>&, UpdateTableResponse&)>&);
-    void getRange(
-        GetRangeRequest&,
-        const std::function<void(
-            GetRangeRequest&, std::optional<OTSError>&, GetRangeResponse&)>&);
-    void putRow(
-        PutRowRequest&,
-        const std::function<void(
-            PutRowRequest&, std::optional<OTSError>&, PutRowResponse&)>&);
-    void getRow(
-        GetRowRequest&,
-        const std::function<void(
-            GetRowRequest&, std::optional<OTSError>&, GetRowResponse&)>&);
-    void updateRow(
-        UpdateRowRequest&,
-        const std::function<void(
-            UpdateRowRequest&, std::optional<OTSError>&, UpdateRowResponse&)>&);
-    void deleteRow(
-        DeleteRowRequest&,
-        const std::function<void(
-            DeleteRowRequest&, std::optional<OTSError>&, DeleteRowResponse&)>&);
-    void batchGetRow(
-        BatchGetRowRequest&,
-        const std::function<void(
-            BatchGetRowRequest&, std::optional<OTSError>&, BatchGetRowResponse&)>&);
-    void batchWriteRow(
-        BatchWriteRowRequest&,
-        const std::function<void(
-            BatchWriteRowRequest&, std::optional<OTSError>&, BatchWriteRowResponse&)>&);
-    void computeSplitsBySize(
-        ComputeSplitsBySizeRequest&,
-        const std::function<void(
-            ComputeSplitsBySizeRequest&, std::optional<OTSError>&, ComputeSplitsBySizeResponse&)>&);
+  util::Logger &mutableLogger();
+  const std::deque<std::shared_ptr<util::Actor>> &actors() const;
+  const RetryStrategy &retryStrategy() const;
+  void createTable(
+      CreateTableRequest &&,
+      const std::function<void(CreateTableRequest &, std::optional<OTSError> &,
+                               CreateTableResponse &)> &);
+  void deleteTable(
+      DeleteTableRequest &&,
+      const std::function<void(DeleteTableRequest &, std::optional<OTSError> &,
+                               DeleteTableResponse &)> &);
+  void listTable(
+      ListTableRequest &&,
+      const std::function<void(ListTableRequest &, std::optional<OTSError> &,
+                               ListTableResponse &)> &);
+  void describeTable(DescribeTableRequest &&,
+                     const std::function<void(DescribeTableRequest &,
+                                              std::optional<OTSError> &,
+                                              DescribeTableResponse &)> &);
+  void updateTable(
+      UpdateTableRequest &&,
+      const std::function<void(UpdateTableRequest &, std::optional<OTSError> &,
+                               UpdateTableResponse &)> &);
+  void getRange(
+      GetRangeRequest &&,
+      const std::function<void(GetRangeRequest &, std::optional<OTSError> &,
+                               GetRangeResponse &)> &);
+  void
+  putRow(PutRowRequest &&,
+         const std::function<void(PutRowRequest &, std::optional<OTSError> &,
+                                  PutRowResponse &)> &);
+  void
+  getRow(GetRowRequest &&,
+         const std::function<void(GetRowRequest &, std::optional<OTSError> &,
+                                  GetRowResponse &)> &);
+  void updateRow(
+      UpdateRowRequest &&,
+      const std::function<void(UpdateRowRequest &, std::optional<OTSError> &,
+                               UpdateRowResponse &)> &);
+  void deleteRow(
+      DeleteRowRequest &&,
+      const std::function<void(DeleteRowRequest &, std::optional<OTSError> &,
+                               DeleteRowResponse &)> &);
+  void batchGetRow(
+      BatchGetRowRequest &&,
+      const std::function<void(BatchGetRowRequest &, std::optional<OTSError> &,
+                               BatchGetRowResponse &)> &);
+  void batchWriteRow(BatchWriteRowRequest &&,
+                     const std::function<void(BatchWriteRowRequest &,
+                                              std::optional<OTSError> &,
+                                              BatchWriteRowResponse &)> &);
+  void computeSplitsBySize(
+      ComputeSplitsBySizeRequest &&,
+      const std::function<void(ComputeSplitsBySizeRequest &,
+                               std::optional<OTSError> &,
+                               ComputeSplitsBySizeResponse &)> &);
 
 private:
-    std::shared_ptr<AsyncClientBase> mAsyncClient;
+  std::shared_ptr<AsyncClientBase> mAsyncClient;
 
-    friend class impl::SyncClient;
+  friend class impl::SyncClient;
 };
-
 
 } // namespace impl
 } // namespace core
 } // namespace tablestore
 } // namespace aliyun
-
 
 #endif

@@ -189,7 +189,7 @@ void GetRange(const PutRowRequest& putrow, const tuple<SyncClient*, string>& in)
     cri.mutableTable() = get<1>(in);
     cri.mutableMaxVersions().reset(1);
     GetRangeRequest req;
-    req.mutableQueryCriterion() = util::move(cri);
+    req.mutableQueryCriterion() = std::move(cri);
     GetRangeResponse resp;
     std::optional<OTSError> err = get<0>(in)->getRange(resp, req);
     TESTA_ASSERT(!err)
@@ -233,7 +233,7 @@ void ScanTable(
         if (!iter->valid()) {
             break;
         }
-        moveAssign(trial.append(), util::move(iter->get()));
+        moveAssign(trial.append(), std::move(iter->get()));
     }
 
     int64_t osz = oracle.size();

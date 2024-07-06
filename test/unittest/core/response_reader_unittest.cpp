@@ -65,7 +65,7 @@ void ResponseReader_NoBody(const string&)
     TESTA_ASSERT(rr.httpStatus() == 200)
         (rr.httpStatus()).issue();
     http::InplaceHeaders headers;
-    moveAssign(headers, util::move(rr.mutableHeaders()));
+    moveAssign(headers, std::move(rr.mutableHeaders()));
     deque<tuple<MemPiece, MemPiece> > hs;
     FOREACH_ITER(i, headers) {
         hs.push_back(make_tuple(i->first, i->second));
@@ -73,7 +73,7 @@ void ResponseReader_NoBody(const string&)
     TESTA_ASSERT(pp::prettyPrint(hs) == "[(b\"Content-Length\",b\"0\")]")
         (hs).issue();
     deque<MemPiece> body;
-    moveAssign(body, util::move(rr.mutableBody()));
+    moveAssign(body, std::move(rr.mutableBody()));
     TESTA_ASSERT(pp::prettyPrint(body) == "[]")
         (body).issue();
 }
@@ -161,7 +161,7 @@ void ResponseReader_ContentLength(const string&)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::STOP).issue();
     deque<MemPiece> body;
-    moveAssign(body, util::move(rr.mutableBody()));
+    moveAssign(body, std::move(rr.mutableBody()));
     TESTA_ASSERT(pp::prettyPrint(body) == "[b\"a\",b\"b\"]")
         (body).issue();
 }
@@ -185,7 +185,7 @@ void ResponseReader_Chunked(const string&)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::STOP).issue();
     deque<MemPiece> body;
-    moveAssign(body, util::move(rr.mutableBody()));
+    moveAssign(body, std::move(rr.mutableBody()));
     TESTA_ASSERT(pp::prettyPrint(body) == "[b\"abcde\"]")
         (body).issue();
 }
@@ -211,7 +211,7 @@ void ResponseReader_MultipleChunked(const string&)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::STOP).issue();
     deque<MemPiece> body;
-    moveAssign(body, util::move(rr.mutableBody()));
+    moveAssign(body, std::move(rr.mutableBody()));
     TESTA_ASSERT(pp::prettyPrint(body) == "[b\"ab\",b\"cde\"]")
         (body).issue();
 }
@@ -240,7 +240,7 @@ void ResponseReader_LongChunk_lowercase(const string&)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::STOP).issue();
     deque<MemPiece> body;
-    moveAssign(body, util::move(rr.mutableBody()));
+    moveAssign(body, std::move(rr.mutableBody()));
     TESTA_ASSERT(pp::prettyPrint(body) == "[b\""
         "0123456789abcdefghijklmnopqrstuvwxyz"
         "0123456789abcdefghijklmnopqrstuvwxyz"
@@ -275,7 +275,7 @@ void ResponseReader_LongChunk_uppercase(const string&)
         (*err).issue();
     TESTA_ASSERT(more == http::ResponseReader::STOP).issue();
     deque<MemPiece> body;
-    moveAssign(body, util::move(rr.mutableBody()));
+    moveAssign(body, std::move(rr.mutableBody()));
     TESTA_ASSERT(pp::prettyPrint(body) == "[b\""
         "0123456789abcdefghijklmnopqrstuvwxyz"
         "0123456789abcdefghijklmnopqrstuvwxyz"

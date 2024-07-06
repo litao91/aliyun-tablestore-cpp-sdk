@@ -83,7 +83,7 @@ void DequeBasedVector_move(const string&)
     xs.append() = 1;
     DequeBasedVector<int> ys;
     ys.append() = 2;
-    util::moveAssign(xs, util::move(ys));
+    util::moveAssign(xs, std::move(ys));
 
     TESTA_ASSERT(pp::prettyPrint(xs) == "[2]")
         (xs)(ys).issue();

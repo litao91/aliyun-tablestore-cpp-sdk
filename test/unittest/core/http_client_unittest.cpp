@@ -82,7 +82,7 @@ public:
         const ResponseHandler& resp)
     {
         mTracker = tracker;
-        moveAssign(mReq, util::move(req));
+        moveAssign(mReq, std::move(req));
         mReqComplete = reqComplete;
         mRespHandler = resp;
         mSlave.ask(kIssue);

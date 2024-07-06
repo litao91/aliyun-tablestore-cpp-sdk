@@ -30,16 +30,16 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "serde.hpp"
-#include "../types.hpp"
-#include "../protocol/table_store.pb.h"
-#include "../protocol/table_store_filter.pb.h"
 #include "../plainbuffer/reader.hpp"
 #include "../plainbuffer/writer.hpp"
-#include "tablestore/util/mempiece.hpp"
+#include "../types.hpp"
+#include "table_store.pb.h"
+#include "table_store_filter.pb.h"
 #include "tablestore/util/foreach.hpp"
+#include "tablestore/util/mempiece.hpp"
 #include "tablestore/util/try.hpp"
-#include <memory>
 #include <cstdio>
+#include <memory>
 
 using namespace std;
 
@@ -54,1339 +54,1200 @@ namespace impl {
 
 namespace {
 
-void concat(string& out, const deque<MemPiece>& pieces)
-{
-    int64_t size = 0;
-    FOREACH_ITER(i, pieces) {
-        size += i->length();
-    }
-    if (out.capacity() < out.size() + size + 1) {
-        // +1 for the tailing '\0'
-        out.reserve(out.size() + size + 1);
-    }
-    FOREACH_ITER(i, pieces) {
-        out.append((char*)i->data(), i->length());
-    }
+void concat(string &out, const deque<MemPiece> &pieces) {
+  int64_t size = 0;
+  FOREACH_ITER(i, pieces) { size += i->length(); }
+  if (out.capacity() < out.size() + size + 1) {
+    // +1 for the tailing '\0'
+    out.reserve(out.size() + size + 1);
+  }
+  FOREACH_ITER(i, pieces) { out.append((char *)i->data(), i->length()); }
 }
 
-void toError(OTSError& api, const PB::Error& pb)
-{
-    api.setHttpStatusFromErrorCode(pb.code());
-    api.mutableErrorCode() = pb.code();
-    if (pb.has_message()) {
-        api.mutableMessage() = pb.message();
-    }
+void toError(OTSError &api, const PB::Error &pb) {
+  api.setHttpStatusFromErrorCode(pb.code());
+  api.mutableErrorCode() = pb.code();
+  if (pb.has_message()) {
+    api.mutableMessage() = pb.message();
+  }
 }
 
-PrimaryKeyType toPrimaryKeyType(PB::PrimaryKeyType pb)
-{
-    switch (pb) {
-    case PB::INTEGER: return kPKT_Integer;
-    case PB::STRING: return kPKT_String;
-    case PB::BINARY: return kPKT_Binary;
-    }
-    OTS_ASSERT(false)((int) pb);
+PrimaryKeyType toPrimaryKeyType(PB::PrimaryKeyType pb) {
+  switch (pb) {
+  case PB::INTEGER:
     return kPKT_Integer;
+  case PB::STRING:
+    return kPKT_String;
+  case PB::BINARY:
+    return kPKT_Binary;
+  }
+  OTS_ASSERT(false)((int)pb);
+  return kPKT_Integer;
 }
 
-PB::PrimaryKeyType toPrimaryKeyType(PrimaryKeyType api)
-{
-    switch (api) {
-    case kPKT_Integer: return PB::INTEGER;
-    case kPKT_String: return PB::STRING;
-    case kPKT_Binary: return PB::BINARY;
-    }
-    OTS_ASSERT(false)(api);
+PB::PrimaryKeyType toPrimaryKeyType(PrimaryKeyType api) {
+  switch (api) {
+  case kPKT_Integer:
     return PB::INTEGER;
+  case kPKT_String:
+    return PB::STRING;
+  case kPKT_Binary:
+    return PB::BINARY;
+  }
+  OTS_ASSERT(false)(api);
+  return PB::INTEGER;
 }
 
-PB::PrimaryKeyOption toPrimaryKeyOption(PrimaryKeyColumnSchema::Option api)
-{
-    switch (api) {
-    case PrimaryKeyColumnSchema::AutoIncrement: return PB::AUTO_INCREMENT;
-    }
-    OTS_ASSERT(false)(api);
+PB::PrimaryKeyOption toPrimaryKeyOption(PrimaryKeyColumnSchema::Option api) {
+  switch (api) {
+  case PrimaryKeyColumnSchema::AutoIncrement:
     return PB::AUTO_INCREMENT;
+  }
+  OTS_ASSERT(false)(api);
+  return PB::AUTO_INCREMENT;
 }
 
-PrimaryKeyColumnSchema::Option toPrimaryKeyOption(PB::PrimaryKeyOption pb)
-{
-    switch (pb) {
-    case PB::AUTO_INCREMENT: return PrimaryKeyColumnSchema::AutoIncrement;
-    }
-    OTS_ASSERT(false);
+PrimaryKeyColumnSchema::Option toPrimaryKeyOption(PB::PrimaryKeyOption pb) {
+  switch (pb) {
+  case PB::AUTO_INCREMENT:
     return PrimaryKeyColumnSchema::AutoIncrement;
+  }
+  OTS_ASSERT(false);
+  return PrimaryKeyColumnSchema::AutoIncrement;
 }
 
-void toTableMeta(PB::TableMeta& pb, const TableMeta& api)
-{
-    pb.set_table_name(api.tableName());
+void toTableMeta(PB::TableMeta &pb, const TableMeta &api) {
+  pb.set_table_name(api.tableName());
 
-    // Primary key
-    const Schema& schema = api.schema();
-    for(int64_t i = 0, sz = schema.size(); i < sz; ++i) {
-        PB::PrimaryKeySchema& pkeySchema = *pb.add_primary_key();
-        pkeySchema.set_name(schema[i].name());
-        pkeySchema.set_type(toPrimaryKeyType(schema[i].type()));
-        if (schema[i].option()) {
-            pkeySchema.set_option(toPrimaryKeyOption(*schema[i].option()));
-        }
+  // Primary key
+  const Schema &schema = api.schema();
+  for (int64_t i = 0, sz = schema.size(); i < sz; ++i) {
+    PB::PrimaryKeySchema &pkeySchema = *pb.add_primary_key();
+    pkeySchema.set_name(schema[i].name());
+    pkeySchema.set_type(toPrimaryKeyType(schema[i].type()));
+    if (schema[i].option()) {
+      pkeySchema.set_option(toPrimaryKeyOption(*schema[i].option()));
     }
+  }
 }
 
-void toTableMeta(TableMeta& api, const PB::TableMeta& pb)
-{
-    api.mutableTableName() = pb.table_name();
+void toTableMeta(TableMeta &api, const PB::TableMeta &pb) {
+  api.mutableTableName() = pb.table_name();
 
-    for(int64_t i = 0, sz = pb.primary_key_size(); i < sz; ++i) {
-        const PB::PrimaryKeySchema& primaryKeySchema = pb.primary_key(i);
-        Schema& schema = api.mutableSchema();
-        schema.append().mutableName() = primaryKeySchema.name();
-        schema.back().mutableType() = toPrimaryKeyType(primaryKeySchema.type());
-        if (primaryKeySchema.has_option()) {
-            *schema.back().mutableOption() =
-                toPrimaryKeyOption(primaryKeySchema.option());
-        }
+  for (int64_t i = 0, sz = pb.primary_key_size(); i < sz; ++i) {
+    const PB::PrimaryKeySchema &primaryKeySchema = pb.primary_key(i);
+    Schema &schema = api.mutableSchema();
+    schema.append().mutableName() = primaryKeySchema.name();
+    schema.back().mutableType() = toPrimaryKeyType(primaryKeySchema.type());
+    if (primaryKeySchema.has_option()) {
+      *schema.back().mutableOption() =
+          toPrimaryKeyOption(primaryKeySchema.option());
     }
+  }
 }
 
-void toCapacityUnit(PB::ReservedThroughput& pb, const CapacityUnit& api)
-{
-    PB::CapacityUnit& pbCu = *pb.mutable_capacity_unit();
-    if (api.read()) {
-        pbCu.set_read(*api.read());
-    }
-    if (api.write()) {
-        pbCu.set_write(*api.write());
-    }
+void toCapacityUnit(PB::ReservedThroughput &pb, const CapacityUnit &api) {
+  PB::CapacityUnit &pbCu = *pb.mutable_capacity_unit();
+  if (api.read()) {
+    pbCu.set_read(*api.read());
+  }
+  if (api.write()) {
+    pbCu.set_write(*api.write());
+  }
 }
 
-void toCapacityUnit(CapacityUnit& api, const PB::CapacityUnit& pb)
-{
-    if (pb.has_read()) {
-        api.mutableRead().reset(pb.read());
-    }
-    if (pb.has_write()) {
-        api.mutableWrite().reset(pb.write());
-    }
+void toCapacityUnit(CapacityUnit &api, const PB::CapacityUnit &pb) {
+  if (pb.has_read()) {
+    api.mutableRead().emplace(pb.read());
+  }
+  if (pb.has_write()) {
+    api.mutableWrite().emplace(pb.write());
+  }
 }
 
-void toTableOptionsWithoutTtl(PB::TableOptions& pb, const TableOptions& api)
-{
-    if (api.maxVersions()) {
-        pb.set_max_versions(*api.maxVersions());
-    }
-    if (api.bloomFilterType()) {
-        pb.set_bloom_filter_type((PB::BloomFilterType) *api.bloomFilterType());
-    }
-    if (api.blockSize()) {
-        pb.set_block_size(*api.blockSize());
-    }
-    if (api.maxTimeDeviation()) {
-        pb.set_deviation_cell_version_in_sec(api.maxTimeDeviation()->toSec());
-    }
+void toTableOptionsWithoutTtl(PB::TableOptions &pb, const TableOptions &api) {
+  if (api.maxVersions()) {
+    pb.set_max_versions(*api.maxVersions());
+  }
+  if (api.bloomFilterType()) {
+    pb.set_bloom_filter_type((PB::BloomFilterType)*api.bloomFilterType());
+  }
+  if (api.blockSize()) {
+    pb.set_block_size(*api.blockSize());
+  }
+  if (api.maxTimeDeviation()) {
+    pb.set_deviation_cell_version_in_sec(api.maxTimeDeviation()->toSec());
+  }
 }
 
-void toTableOptionsForCreateTable(PB::TableOptions& pb, const TableOptions& api)
-{
-    if (api.timeToLive()) {
-        pb.set_time_to_live(api.timeToLive()->toSec());
-    } else {
-        pb.set_time_to_live(-1);
-    }
-    toTableOptionsWithoutTtl(pb, api);
+void toTableOptionsForCreateTable(PB::TableOptions &pb,
+                                  const TableOptions &api) {
+  if (api.timeToLive()) {
+    pb.set_time_to_live(api.timeToLive()->toSec());
+  } else {
+    pb.set_time_to_live(-1);
+  }
+  toTableOptionsWithoutTtl(pb, api);
 }
 
-void toTableOptionsForUpdateTable(PB::TableOptions& pb, const TableOptions& api)
-{
-    if (api.timeToLive()) {
-        pb.set_time_to_live(api.timeToLive()->toSec());
-    }
-    toTableOptionsWithoutTtl(pb, api);
+void toTableOptionsForUpdateTable(PB::TableOptions &pb,
+                                  const TableOptions &api) {
+  if (api.timeToLive()) {
+    pb.set_time_to_live(api.timeToLive()->toSec());
+  }
+  toTableOptionsWithoutTtl(pb, api);
 }
 
-void toTableOptions(TableOptions& api, const PB::TableOptions& pb)
-{
-    if (pb.has_time_to_live()) {
-        api.mutableTimeToLive().reset(Duration::fromSec(pb.time_to_live()));
-    }
-    if (pb.has_max_versions()) {
-        api.mutableMaxVersions().reset(pb.max_versions());
-    }
-    if (pb.has_bloom_filter_type()) {
-        api.mutableBloomFilterType().reset(
-            static_cast<BloomFilterType>(pb.bloom_filter_type()));
-    }
-    if (pb.has_block_size()) {
-        api.mutableBlockSize().reset(pb.block_size());
-    }
-    if (pb.has_deviation_cell_version_in_sec()) {
-        api.mutableMaxTimeDeviation().reset(
-            Duration::fromSec(pb.deviation_cell_version_in_sec()));
-    }
+void toTableOptions(TableOptions &api, const PB::TableOptions &pb) {
+  if (pb.has_time_to_live()) {
+    api.mutableTimeToLive().emplace(Duration::fromSec(pb.time_to_live()));
+  }
+  if (pb.has_max_versions()) {
+    api.mutableMaxVersions().emplace(pb.max_versions());
+  }
+  if (pb.has_bloom_filter_type()) {
+    api.mutableBloomFilterType().emplace(
+        static_cast<BloomFilterType>(pb.bloom_filter_type()));
+  }
+  if (pb.has_block_size()) {
+    api.mutableBlockSize().emplace(pb.block_size());
+  }
+  if (pb.has_deviation_cell_version_in_sec()) {
+    api.mutableMaxTimeDeviation().emplace(
+        Duration::fromSec(pb.deviation_cell_version_in_sec()));
+  }
 }
 
-void toTimeRange(PB::TimeRange& pb, const TimeRange& api)
-{
-    int64_t tsStart = api.start().toMsec();
-    int64_t tsEnd = api.end().toMsec();
-    if (tsStart + 1 == tsEnd) {
-        pb.set_specific_time(tsStart);
-    } else {
-        pb.set_start_time(tsStart);
-        pb.set_end_time(tsEnd);
-    }
+void toTimeRange(PB::TimeRange &pb, const TimeRange &api) {
+  int64_t tsStart = api.start().toMsec();
+  int64_t tsEnd = api.end().toMsec();
+  if (tsStart + 1 == tsEnd) {
+    pb.set_specific_time(tsStart);
+  } else {
+    pb.set_start_time(tsStart);
+    pb.set_end_time(tsEnd);
+  }
 }
 
-PB::Direction toDirection(RangeQueryCriterion::Direction dir)
-{
-    switch (dir) {
-    case RangeQueryCriterion::FORWARD: return PB::FORWARD;
-    case RangeQueryCriterion::BACKWARD: return PB::BACKWARD;
-    }
-    OTS_ASSERT(false)((int) dir);
+PB::Direction toDirection(RangeQueryCriterion::Direction dir) {
+  switch (dir) {
+  case RangeQueryCriterion::FORWARD:
     return PB::FORWARD;
+  case RangeQueryCriterion::BACKWARD:
+    return PB::BACKWARD;
+  }
+  OTS_ASSERT(false)((int)dir);
+  return PB::FORWARD;
 }
 
-PB::RowExistenceExpectation toRowExistence(
-    Condition::RowExistenceExpectation exp)
-{
-    switch (exp) {
-    case Condition::kIgnore: return PB::IGNORE;
-    case Condition::kExpectExist: return PB::EXPECT_EXIST;
-    case Condition::kExpectNotExist: return PB::EXPECT_NOT_EXIST;
-    }
-    OTS_ASSERT(false)((int) exp);
+PB::RowExistenceExpectation
+toRowExistence(Condition::RowExistenceExpectation exp) {
+  switch (exp) {
+  case Condition::kIgnore:
     return PB::IGNORE;
+  case Condition::kExpectExist:
+    return PB::EXPECT_EXIST;
+  case Condition::kExpectNotExist:
+    return PB::EXPECT_NOT_EXIST;
+  }
+  OTS_ASSERT(false)((int)exp);
+  return PB::IGNORE;
 }
 
-PB::ReturnType toReturnType(RowChange::ReturnType rt)
-{
-    switch (rt) {
-    case RowChange::kRT_None: return PB::RT_NONE;
-    case RowChange::kRT_PrimaryKey: return PB::RT_PK;
-    }
-    OTS_ASSERT(false)((int) rt);
+PB::ReturnType toReturnType(RowChange::ReturnType rt) {
+  switch (rt) {
+  case RowChange::kRT_None:
     return PB::RT_NONE;
+  case RowChange::kRT_PrimaryKey:
+    return PB::RT_PK;
+  }
+  OTS_ASSERT(false)((int)rt);
+  return PB::RT_NONE;
 }
 
-PB::FilterType toFilterType(ColumnCondition::Type cct)
-{
-    switch (cct) {
-    case ColumnCondition::kComposite:
-        return PB::FT_COMPOSITE_COLUMN_VALUE;
-    case ColumnCondition::kSingle:
-        return PB::FT_SINGLE_COLUMN_VALUE;
-    }
-    OTS_ASSERT(false)((int) cct);
+PB::FilterType toFilterType(ColumnCondition::Type cct) {
+  switch (cct) {
+  case ColumnCondition::kComposite:
+    return PB::FT_COMPOSITE_COLUMN_VALUE;
+  case ColumnCondition::kSingle:
     return PB::FT_SINGLE_COLUMN_VALUE;
+  }
+  OTS_ASSERT(false)((int)cct);
+  return PB::FT_SINGLE_COLUMN_VALUE;
 }
 
-PB::ComparatorType toComparatorType(
-    SingleColumnCondition::Relation rel)
-{
-    switch (rel) {
-    case SingleColumnCondition::kEqual: return PB::CT_EQUAL;
-    case SingleColumnCondition::kNotEqual: return PB::CT_NOT_EQUAL;
-    case SingleColumnCondition::kLarger: return PB::CT_GREATER_THAN;
-    case SingleColumnCondition::kLargerEqual: return PB::CT_GREATER_EQUAL;
-    case SingleColumnCondition::kSmaller: return PB::CT_LESS_THAN;
-    case SingleColumnCondition::kSmallerEqual: return PB::CT_LESS_EQUAL;
-    }
-    OTS_ASSERT(false)((int) rel);
+PB::ComparatorType toComparatorType(SingleColumnCondition::Relation rel) {
+  switch (rel) {
+  case SingleColumnCondition::kEqual:
     return PB::CT_EQUAL;
+  case SingleColumnCondition::kNotEqual:
+    return PB::CT_NOT_EQUAL;
+  case SingleColumnCondition::kLarger:
+    return PB::CT_GREATER_THAN;
+  case SingleColumnCondition::kLargerEqual:
+    return PB::CT_GREATER_EQUAL;
+  case SingleColumnCondition::kSmaller:
+    return PB::CT_LESS_THAN;
+  case SingleColumnCondition::kSmallerEqual:
+    return PB::CT_LESS_EQUAL;
+  }
+  OTS_ASSERT(false)((int)rel);
+  return PB::CT_EQUAL;
 }
 
-string& borrow(StrPool& spool, deque<string*>& buf)
-{
-    buf.push_back(spool.borrow());
-    OTS_ASSERT(buf.back()->empty());
-    return *buf.back();
+string &borrow(StrPool &spool, deque<string *> &buf) {
+  buf.push_back(spool.borrow());
+  OTS_ASSERT(buf.back()->empty());
+  return *buf.back();
 }
 
-void giveBack(StrPool& spool, deque<string*>& buf)
-{
-    for(;!buf.empty(); buf.pop_back()) {
-        spool.giveBack(buf.back());
-    }
+void giveBack(StrPool &spool, deque<string *> &buf) {
+  for (; !buf.empty(); buf.pop_back()) {
+    spool.giveBack(buf.back());
+  }
 }
 
-string toSingleCondition(StrPool& spool, const SingleColumnCondition& cc)
-{
-    PB::SingleColumnValueFilter pb;
-    deque<string*> buf;
-    pb.set_column_name(cc.columnName());
-    pb.set_comparator(toComparatorType(cc.relation()));
-    pb.set_column_value(
-        plainbuffer::write(
-            borrow(spool, buf),
-            cc.columnValue()));
-    pb.set_filter_if_missing(!cc.passIfMissing());
-    pb.set_latest_version_only(cc.latestVersionOnly());
-    string res;
-    bool ret = pb.SerializeToString(&res);
-    OTS_ASSERT(ret)(cc);
-    giveBack(spool, buf);
-    return res;
+string toSingleCondition(StrPool &spool, const SingleColumnCondition &cc) {
+  PB::SingleColumnValueFilter pb;
+  deque<string *> buf;
+  pb.set_column_name(cc.columnName());
+  pb.set_comparator(toComparatorType(cc.relation()));
+  pb.set_column_value(plainbuffer::write(borrow(spool, buf), cc.columnValue()));
+  pb.set_filter_if_missing(!cc.passIfMissing());
+  pb.set_latest_version_only(cc.latestVersionOnly());
+  string res;
+  bool ret = pb.SerializeToString(&res);
+  OTS_ASSERT(ret)(cc);
+  giveBack(spool, buf);
+  return res;
 }
 
-PB::LogicalOperator toLogicalOperator(CompositeColumnCondition::Operator op)
-{
-    switch (op) {
-    case CompositeColumnCondition::kNot: return PB::LO_NOT;
-    case CompositeColumnCondition::kAnd: return PB::LO_AND;
-    case CompositeColumnCondition::kOr: return PB::LO_OR;
-    }
-    OTS_ASSERT(false)((int) op);
+PB::LogicalOperator toLogicalOperator(CompositeColumnCondition::Operator op) {
+  switch (op) {
+  case CompositeColumnCondition::kNot:
+    return PB::LO_NOT;
+  case CompositeColumnCondition::kAnd:
     return PB::LO_AND;
+  case CompositeColumnCondition::kOr:
+    return PB::LO_OR;
+  }
+  OTS_ASSERT(false)((int)op);
+  return PB::LO_AND;
 }
 
-string toCompositeCondition(StrPool& spool, const CompositeColumnCondition& cc)
-{
-    PB::CompositeColumnValueFilter pb;
-    deque<string*> buf;
-    pb.set_combinator(toLogicalOperator(cc.op()));
-    for(int64_t i = 0, sz = cc.children().size(); i < sz; ++i) {
-        const ColumnCondition& subcc = *(cc.children()[i]);
-        PB::Filter& pbSubFilter = *pb.add_sub_filters();
-        pbSubFilter.set_type(toFilterType(subcc.type()));
-        switch(subcc.type()) {
-        case ColumnCondition::kSingle:
-            pbSubFilter.set_filter(toSingleCondition(
-                    spool,
-                    dynamic_cast<const SingleColumnCondition&>(subcc)));
-            break;
-        case ColumnCondition::kComposite:
-            pbSubFilter.set_filter(toCompositeCondition(
-                    spool,
-                    dynamic_cast<const CompositeColumnCondition&>(subcc)));
-            break;
-        }
-    }
-    string res;
-    bool ret = pb.SerializeToString(&res);
-    OTS_ASSERT(ret)(cc);
-    return res;
-}
-
-string toFilter(StrPool& spool, const ColumnCondition& cc)
-{
-    PB::Filter pbFilter;
-    pbFilter.set_type(toFilterType(cc.type()));
-    switch(cc.type()) {
+string toCompositeCondition(StrPool &spool,
+                            const CompositeColumnCondition &cc) {
+  PB::CompositeColumnValueFilter pb;
+  deque<string *> buf;
+  pb.set_combinator(toLogicalOperator(cc.op()));
+  for (int64_t i = 0, sz = cc.children().size(); i < sz; ++i) {
+    const ColumnCondition &subcc = *(cc.children()[i]);
+    PB::Filter &pbSubFilter = *pb.add_sub_filters();
+    pbSubFilter.set_type(toFilterType(subcc.type()));
+    switch (subcc.type()) {
     case ColumnCondition::kSingle:
-        pbFilter.set_filter(toSingleCondition(
-                spool,
-                dynamic_cast<const SingleColumnCondition&>(cc)));
-        break;
+      pbSubFilter.set_filter(toSingleCondition(
+          spool, dynamic_cast<const SingleColumnCondition &>(subcc)));
+      break;
     case ColumnCondition::kComposite:
-        pbFilter.set_filter(toCompositeCondition(
-                spool,
-                dynamic_cast<const CompositeColumnCondition&>(cc)));
-        break;
+      pbSubFilter.set_filter(toCompositeCondition(
+          spool, dynamic_cast<const CompositeColumnCondition &>(subcc)));
+      break;
     }
-    string filterStr;
-    bool ret = pbFilter.SerializeToString(&filterStr);
-    OTS_ASSERT(ret)(cc);
-    return filterStr;
+  }
+  string res;
+  bool ret = pb.SerializeToString(&res);
+  OTS_ASSERT(ret)(cc);
+  return res;
 }
 
-template<typename T>
-std::optional<OTSError> parseBody(T& out, deque<MemPiece>& body)
-{
-    MemPoolZeroCopyInputStream is(body);
-    bool ok = out.ParseFromZeroCopyStream(&is);
-    if (!ok) {
-        OTSError e(OTSError::kPredefined_CorruptedResponse);
-        e.mutableMessage() = "Fail to parse protobuf in response.";
-        return std::optional<OTSError>(util::move(e));
-    }
-    return std::optional<OTSError>();
+string toFilter(StrPool &spool, const ColumnCondition &cc) {
+  PB::Filter pbFilter;
+  pbFilter.set_type(toFilterType(cc.type()));
+  switch (cc.type()) {
+  case ColumnCondition::kSingle:
+    pbFilter.set_filter(toSingleCondition(
+        spool, dynamic_cast<const SingleColumnCondition &>(cc)));
+    break;
+  case ColumnCondition::kComposite:
+    pbFilter.set_filter(toCompositeCondition(
+        spool, dynamic_cast<const CompositeColumnCondition &>(cc)));
+    break;
+  }
+  string filterStr;
+  bool ret = pbFilter.SerializeToString(&filterStr);
+  OTS_ASSERT(ret)(cc);
+  return filterStr;
 }
 
-} // namespace
-
-std::optional<OTSError> deserialize(
-    OTSError& out,
-    deque<MemPiece>& body)
-{
-    typedef com::aliyun::tablestore::protocol::Error PbError;
-
-    MemPoolZeroCopyInputStream is(body);
-    PbError pb;
-    bool ret = pb.ParseFromZeroCopyStream(&is);
-    if (!ret) {
-        OTSError e(OTSError::kPredefined_CorruptedResponse);
-        e.mutableMessage().clear();
-        concat(e.mutableMessage(), body);
-        return std::optional<OTSError>(util::move(e));
-    }
-    toError(out, pb);
-    return std::optional<OTSError>();
-}
-
-Serde<kApi_ListTable>::Serde(MemPool& mpool, StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool)
-{}
-
-std::optional<OTSError> Serde<kApi_ListTable>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    PbRequest req;
-    req.SerializeToZeroCopyStream(&mOStream);
-    moveAssign(body, mOStream.pieces());
-
-    return std::optional<OTSError>();
-}
-
-std::optional<OTSError> Serde<kApi_ListTable>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
-
-    IVector<string>& tables = api.mutableTables();
-    for(int64_t i = 0; i < pb.table_names_size(); ++i) {
-        tables.append() = pb.table_names(i);
-    }
-    return std::optional<OTSError>();
-}
-
-
-Serde<kApi_CreateTable>::Serde(MemPool& mpool, StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool)
-{}
-
-std::optional<OTSError> Serde<kApi_CreateTable>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    PbRequest pb;
-    deque<string*> buf;
-    toTableMeta(*pb.mutable_table_meta(), api.meta());
-    if (api.options().reservedThroughput()) {
-        toCapacityUnit(*pb.mutable_reserved_throughput(), *api.options().reservedThroughput());
-    }
-    toTableOptionsForCreateTable(*pb.mutable_table_options(), api.options());
-    if (api.shardSplitPoints().size() > 0) {
-        const IVector<PrimaryKey>& shardSplits = api.shardSplitPoints();
-        string lastStr = plainbuffer::write(
-            borrow(mStrPool, buf),
-            PrimaryKeyValue::toInfMin());
-        for(int64_t i = 0, sz = shardSplits.size(); i < sz; ++i) {
-            const PrimaryKey& cur = shardSplits[i];
-            PB::PartitionRange& p = *pb.add_partitions();
-            string curStr = plainbuffer::write(
-                borrow(mStrPool, buf),
-                cur[0].value());
-            p.set_begin(lastStr);
-            p.set_end(curStr);
-            lastStr = curStr;
-        }
-        string infmaxStr = plainbuffer::write(
-            borrow(mStrPool, buf),
-            PrimaryKeyValue::toInfMin());
-        PB::PartitionRange& p = *pb.add_partitions();
-        p.set_begin(lastStr);
-        p.set_end(infmaxStr);
-    }
-
-    pb.SerializeToZeroCopyStream(&mOStream);
-    giveBack(mStrPool, buf);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
-}
-
-std::optional<OTSError> Serde<kApi_CreateTable>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
-    return std::optional<OTSError>();
-}
-
-
-Serde<kApi_DeleteTable>::Serde(MemPool& mpool, util::StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool)
-{}
-
-std::optional<OTSError> Serde<kApi_DeleteTable>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    PbRequest pb;
-    pb.set_table_name(api.table());
-
-    pb.SerializeToZeroCopyStream(&mOStream);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
-}
-
-std::optional<OTSError> Serde<kApi_DeleteTable>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    MemPoolZeroCopyInputStream is(body);
-    PbResponse pb;
-    bool ok = pb.ParseFromZeroCopyStream(&is);
-    if (!ok) {
-        OTSError e(OTSError::kPredefined_CorruptedResponse);
-        e.mutableMessage() = "Fail to parse protobuf in response.";
-        return std::optional<OTSError>(util::move(e));
-    }
-
-    return std::optional<OTSError>();
-}
-
-
-Serde<kApi_DescribeTable>::Serde(MemPool& mpool, util::StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool)
-{}
-
-std::optional<OTSError> Serde<kApi_DescribeTable>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    PbRequest pb;
-    pb.set_table_name(api.table());
-
-    pb.SerializeToZeroCopyStream(&mOStream);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
-}
-
-std::optional<OTSError> Serde<kApi_DescribeTable>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
-
-    // 1. meta
-    toTableMeta(api.mutableMeta(), pb.table_meta());
-
-    // 2. Table Options
-    toTableOptions(api.mutableOptions(), pb.table_options());
-
-    // 3. SetReservedThroughputDetails
-    {
-        CapacityUnit cu;
-        toCapacityUnit(
-            cu,
-            pb.reserved_throughput_details().capacity_unit());
-        api.mutableOptions().mutableReservedThroughput().emplace(std::move(cu));
-    }
-
-    // 4. TableStatus
-    api.mutableStatus() = static_cast<TableStatus>(pb.table_status());
-
-    // 5. shard splits
-    {
-        IVector<PrimaryKey>& splits = api.mutableShardSplitPoints();
-        for(int64_t i = 0, sz = pb.shard_splits_size(); i < sz; ++i) {
-            const string& point = pb.shard_splits(i);
-            Row row;
-            TRY(plainbuffer::readRow(row, MemPiece::from(point)));
-            moveAssign(splits.append(), util::move(row.mutablePrimaryKey()));
-        }
-    }
-    return std::optional<OTSError>();
-}
-
-
-Serde<kApi_UpdateTable>::Serde(MemPool& mpool, util::StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool)
-{}
-
-std::optional<OTSError> Serde<kApi_UpdateTable>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    PbRequest pb;
-
-    pb.set_table_name(api.table());
-
-    if (api.options().reservedThroughput()) {
-        toCapacityUnit(
-            *pb.mutable_reserved_throughput(),
-            *api.options().reservedThroughput());
-    }
-
-    toTableOptionsForUpdateTable(*pb.mutable_table_options(), api.options());
-
-    pb.SerializeToZeroCopyStream(&mOStream);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
-}
-
-std::optional<OTSError> Serde<kApi_UpdateTable>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
-
-    return std::optional<OTSError>();
-}
-
-
-Serde<kApi_ComputeSplitsBySize>::Serde(MemPool& mpool, util::StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool)
-{}
-
-std::optional<OTSError> Serde<kApi_ComputeSplitsBySize>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    PbRequest pb;
-
-    pb.set_table_name(api.table());
-    pb.set_split_size(api.splitSize());
-
-    pb.SerializeToZeroCopyStream(&mOStream);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
-}
-
-namespace {
-
-void ComplementPrimaryKey(
-    PrimaryKey& pkey,
-    const Schema& schema,
-    const PrimaryKeyValue& val)
-{
-    int64_t curSz = pkey.size();
-    if (curSz < schema.size()) {
-        for(int64_t i = curSz, sz = schema.size(); i < sz; ++i) {
-            pkey.append() = PrimaryKeyColumn(schema[i].name(), val);
-        }
-    }
+template <typename T>
+std::optional<OTSError> parseBody(T &out, deque<MemPiece> &body) {
+  MemPoolZeroCopyInputStream is(body);
+  bool ok = out.ParseFromZeroCopyStream(&is);
+  if (!ok) {
+    OTSError e(OTSError::kPredefined_CorruptedResponse);
+    e.mutableMessage() = "Fail to parse protobuf in response.";
+    return std::optional<OTSError>(std::move(e));
+  }
+  return std::optional<OTSError>();
 }
 
 } // namespace
 
-std::optional<OTSError> Serde<kApi_ComputeSplitsBySize>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
+std::optional<OTSError> deserialize(OTSError &out, deque<MemPiece> &body) {
+  typedef com::aliyun::tablestore::protocol::Error PbError;
 
-    toCapacityUnit(
-        api.mutableConsumedCapacity(),
-        pb.consumed().capacity_unit());
-
-    // 1. schema
-    for (int64_t i = 0; i < pb.schema_size(); ++i) {
-        PrimaryKeyColumnSchema& colSchema = api.mutableSchema().append();
-        const PB::PrimaryKeySchema& pbColSchema = pb.schema(i);
-        colSchema.mutableName() = pbColSchema.name();
-        colSchema.mutableType() = toPrimaryKeyType(pbColSchema.type());
-        if (pbColSchema.has_option()) {
-            *colSchema.mutableOption() = toPrimaryKeyOption(pbColSchema.option());
-        }
-    }
-
-    // 2. splits
-    {
-        const Schema& schema = api.schema();
-        const PrimaryKeyValue& infMin = PrimaryKeyValue::toInfMin();
-        const PrimaryKeyValue& infMax = PrimaryKeyValue::toInfMax();
-        shared_ptr<PrimaryKey> lower(new PrimaryKey());
-        ComplementPrimaryKey(*lower, schema, infMin);
-        for(int64_t i = 0, sz = pb.split_points_size(); i < sz; ++i) {
-            Split& split = api.mutableSplits().append();
-            split.mutableLowerBound() = lower;
-            {
-                const string& point = pb.split_points(i);
-                Row tmpRow;
-                TRY(plainbuffer::readRow(tmpRow, MemPiece::from(point)));
-                PrimaryKey& upper = tmpRow.mutablePrimaryKey();
-                ComplementPrimaryKey(upper, schema, infMin);
-                split.mutableUpperBound().reset(new PrimaryKey());
-                moveAssign(*split.mutableUpperBound(), util::move(upper));
-            }
-            lower = split.upperBound();
-        }
-        Split& last = api.mutableSplits().append();
-        last.mutableLowerBound() = lower;
-        last.mutableUpperBound().reset(new PrimaryKey());
-        ComplementPrimaryKey(*last.mutableUpperBound(), schema, infMax);
-    }
-    
-    // 2.1 locations
-    {
-        int64_t splitIdx = 0;
-        for(int64_t i = 0, sz = pb.locations_size(); i < sz; ++i) {
-            const PB::ComputeSplitPointsBySizeResponse_SplitLocation& pbLoc =
-                pb.locations(i);
-            const string& location = pbLoc.location();
-            int64_t repeat = pbLoc.repeat();
-            for(; splitIdx < api.splits().size() && repeat > 0; ++splitIdx, --repeat) {
-                api.mutableSplits()[splitIdx].mutableLocation() = location;
-            }
-            if (repeat > 0) {
-                OTSError e(OTSError::kPredefined_CorruptedResponse);
-                e.mutableMessage() = "Locations length is incorrect.";
-                return std::optional<OTSError>(util::move(e));
-            }
-        }
-        if (splitIdx != api.splits().size()) {
-            OTSError e(OTSError::kPredefined_CorruptedResponse);
-            e.mutableMessage() = "Locations length is incorrect.";
-            return std::optional<OTSError>(util::move(e));
-        }
-    }
-    return std::optional<OTSError>();
+  MemPoolZeroCopyInputStream is(body);
+  PbError pb;
+  bool ret = pb.ParseFromZeroCopyStream(&is);
+  if (!ret) {
+    OTSError e(OTSError::kPredefined_CorruptedResponse);
+    e.mutableMessage().clear();
+    concat(e.mutableMessage(), body);
+    return std::optional<OTSError>(std::move(e));
+  }
+  toError(out, pb);
+  return std::optional<OTSError>();
 }
 
+Serde<kApi_ListTable>::Serde(MemPool &mpool, StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool) {}
 
-Serde<kApi_PutRow>::Serde(MemPool& mpool, util::StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool)
-{}
+std::optional<OTSError>
+Serde<kApi_ListTable>::serialize(deque<MemPiece> &body, const ApiRequest &api) {
+  PbRequest req;
+  req.SerializeToZeroCopyStream(&mOStream);
+  body = std::move(mOStream.pieces());
 
-std::optional<OTSError> Serde<kApi_PutRow>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    PbRequest pb;
-    deque<string*> buf;
-
-    const RowPutChange& rc = api.rowChange();
-    pb.set_table_name(rc.table());
-    pb.set_row(plainbuffer::write(borrow(mStrPool, buf), rc));
-
-    PB::ReturnContent& returnContent = *pb.mutable_return_content();
-    returnContent.set_return_type(toReturnType(rc.returnType()));
-
-    const Condition& condition = rc.condition();
-    PB::Condition& pbCondition = *pb.mutable_condition();
-    pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
-
-    const shared_ptr<ColumnCondition>& columnCondition = condition.columnCondition();
-    if (columnCondition.get() != NULL) {
-        pbCondition.set_column_condition(toFilter(mStrPool, *columnCondition));
-    }
-
-    pb.SerializeToZeroCopyStream(&mOStream);
-    giveBack(mStrPool, buf);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
+  return std::optional<OTSError>();
 }
 
-std::optional<OTSError> Serde<kApi_PutRow>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
+std::optional<OTSError>
+Serde<kApi_ListTable>::deserialize(ApiResponse &api, deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
 
-    toCapacityUnit(
-        api.mutableConsumedCapacity(),
-        pb.consumed().capacity_unit());
-
-    if (pb.has_row() && !pb.row().empty()) {
-        Row row;
-        TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
-        api.mutableRow().emplace(std::move(row));
-    }
-
-    return std::optional<OTSError>();
+  IVector<string> &tables = api.mutableTables();
+  for (int64_t i = 0; i < pb.table_names_size(); ++i) {
+    tables.append() = pb.table_names(i);
+  }
+  return std::optional<OTSError>();
 }
 
+Serde<kApi_CreateTable>::Serde(MemPool &mpool, StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool) {}
 
-Serde<kApi_GetRow>::Serde(MemPool& mpool, util::StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool)
-{}
+std::optional<OTSError>
+Serde<kApi_CreateTable>::serialize(deque<MemPiece> &body,
+                                   const ApiRequest &api) {
+  PbRequest pb;
+  deque<string *> buf;
+  toTableMeta(*pb.mutable_table_meta(), api.meta());
+  if (api.options().reservedThroughput()) {
+    toCapacityUnit(*pb.mutable_reserved_throughput(),
+                   *api.options().reservedThroughput());
+  }
+  toTableOptionsForCreateTable(*pb.mutable_table_options(), api.options());
+  if (api.shardSplitPoints().size() > 0) {
+    const IVector<PrimaryKey> &shardSplits = api.shardSplitPoints();
+    string lastStr =
+        plainbuffer::write(borrow(mStrPool, buf), PrimaryKeyValue::toInfMin());
+    for (int64_t i = 0, sz = shardSplits.size(); i < sz; ++i) {
+      const PrimaryKey &cur = shardSplits[i];
+      PB::PartitionRange &p = *pb.add_partitions();
+      string curStr = plainbuffer::write(borrow(mStrPool, buf), cur[0].value());
+      p.set_begin(lastStr);
+      p.set_end(curStr);
+      lastStr = curStr;
+    }
+    string infmaxStr =
+        plainbuffer::write(borrow(mStrPool, buf), PrimaryKeyValue::toInfMin());
+    PB::PartitionRange &p = *pb.add_partitions();
+    p.set_begin(lastStr);
+    p.set_end(infmaxStr);
+  }
 
-std::optional<OTSError> Serde<kApi_GetRow>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    PbRequest pb;
-    deque<string*> buf;
-
-    const PointQueryCriterion& queryCriterion = api.queryCriterion();
-    pb.set_table_name(queryCriterion.table());
-    const PrimaryKey& primaryKey = queryCriterion.primaryKey();
-    pb.set_primary_key(
-        plainbuffer::write(
-            borrow(mStrPool, buf),
-            primaryKey));
-
-    const IVector<string>& columnsToGet = queryCriterion.columnsToGet();
-    for(int64_t i = 0, sz = columnsToGet.size(); i < sz; ++i) {
-        pb.add_columns_to_get(columnsToGet[i]);
-    }
-    if (queryCriterion.timeRange()) {
-        toTimeRange(*pb.mutable_time_range(), *queryCriterion.timeRange());
-    }
-    if (queryCriterion.maxVersions()) {
-        pb.set_max_versions(*queryCriterion.maxVersions());
-    }
-    if (queryCriterion.cacheBlocks()) {
-        pb.set_cache_blocks(*queryCriterion.cacheBlocks());
-    }
-    if (queryCriterion.filter().get() != NULL) {
-        pb.set_filter(toFilter(mStrPool, *queryCriterion.filter()));
-    }
-
-    pb.SerializeToZeroCopyStream(&mOStream);
-    giveBack(mStrPool, buf);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
+  pb.SerializeToZeroCopyStream(&mOStream);
+  giveBack(mStrPool, buf);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
 }
 
-std::optional<OTSError> Serde<kApi_GetRow>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
-
-    toCapacityUnit(
-        api.mutableConsumedCapacity(),
-        pb.consumed().capacity_unit());
-
-    if (!pb.row().empty()) {
-        Row row;
-        TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
-        api.mutableRow().emplace(std::move(row));
-    }
-
-    return std::optional<OTSError>();
+std::optional<OTSError>
+Serde<kApi_CreateTable>::deserialize(ApiResponse &api, deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
+  return std::optional<OTSError>();
 }
 
+Serde<kApi_DeleteTable>::Serde(MemPool &mpool, util::StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool) {}
 
-Serde<kApi_GetRange>::Serde(MemPool& mpool, util::StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool)
-{}
+std::optional<OTSError>
+Serde<kApi_DeleteTable>::serialize(deque<MemPiece> &body,
+                                   const ApiRequest &api) {
+  PbRequest pb;
+  pb.set_table_name(api.table());
 
-std::optional<OTSError> Serde<kApi_GetRange>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    PbRequest pb;
-    deque<string*> buf;
-
-    const RangeQueryCriterion& cri = api.queryCriterion();
-    pb.set_table_name(cri.table());
-    pb.set_direction(toDirection(cri.direction()));
-
-    const IVector<string>& columnsToGet = cri.columnsToGet();
-    for(int64_t i = 0, sz = columnsToGet.size(); i < sz; ++i) {
-        pb.add_columns_to_get(columnsToGet[i]);
-    }
-
-    if (cri.timeRange()) {
-        toTimeRange(*pb.mutable_time_range(), *cri.timeRange());
-    }
-    if (cri.maxVersions()) {
-        pb.set_max_versions(*cri.maxVersions());
-    }
-    if (cri.limit()) {
-        pb.set_limit(*cri.limit());
-    }
-    if (cri.cacheBlocks()) {
-        pb.set_cache_blocks(*cri.cacheBlocks());
-    }
-    if (cri.filter().get() != NULL) {
-        pb.set_filter(toFilter(mStrPool, *cri.filter()));
-    }
-
-    pb.set_inclusive_start_primary_key(
-        plainbuffer::write(borrow(mStrPool, buf), cri.inclusiveStart()));
-    pb.set_exclusive_end_primary_key(
-        plainbuffer::write(borrow(mStrPool, buf), cri.exclusiveEnd()));
-
-    pb.SerializeToZeroCopyStream(&mOStream);
-    giveBack(mStrPool, buf);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
+  pb.SerializeToZeroCopyStream(&mOStream);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
 }
 
-std::optional<OTSError> Serde<kApi_GetRange>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
+std::optional<OTSError>
+Serde<kApi_DeleteTable>::deserialize(ApiResponse &api, deque<MemPiece> &body) {
+  MemPoolZeroCopyInputStream is(body);
+  PbResponse pb;
+  bool ok = pb.ParseFromZeroCopyStream(&is);
+  if (!ok) {
+    OTSError e(OTSError::kPredefined_CorruptedResponse);
+    e.mutableMessage() = "Fail to parse protobuf in response.";
+    return std::optional<OTSError>(std::move(e));
+  }
 
-    toCapacityUnit(
-        api.mutableConsumedCapacity(),
-        pb.consumed().capacity_unit());
-
-    if (!pb.rows().empty()) {
-        TRY(plainbuffer::readRows(api.mutableRows(), MemPiece::from(pb.rows())));
-    }
-
-    if (pb.has_next_start_primary_key()) {
-        Row nextStart;
-        TRY(plainbuffer::readRow(
-                nextStart,
-                MemPiece::from(pb.next_start_primary_key())));
-        api.mutableNextStart().emplace(std::move(nextStart.mutablePrimaryKey()));
-    }
-
-    return std::optional<OTSError>();
+  return std::optional<OTSError>();
 }
 
+Serde<kApi_DescribeTable>::Serde(MemPool &mpool, util::StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool) {}
 
-Serde<kApi_UpdateRow>::Serde(MemPool& mpool, util::StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool)
-{}
+std::optional<OTSError>
+Serde<kApi_DescribeTable>::serialize(deque<MemPiece> &body,
+                                     const ApiRequest &api) {
+  PbRequest pb;
+  pb.set_table_name(api.table());
 
-std::optional<OTSError> Serde<kApi_UpdateRow>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    PbRequest pb;
-    deque<string*> buf;
-
-    const RowUpdateChange& rc = api.rowChange();
-    pb.set_table_name(rc.table());
-    pb.set_row_change(plainbuffer::write(borrow(mStrPool, buf), rc));
-
-    PB::ReturnContent& returnContent = *pb.mutable_return_content();
-    returnContent.set_return_type(toReturnType(rc.returnType()));
-
-    const Condition& condition = rc.condition();
-    PB::Condition& pbCondition = *pb.mutable_condition();
-    pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
-
-    const shared_ptr<ColumnCondition>& columnCondition = condition.columnCondition();
-    if (columnCondition.get() != NULL) {
-        pbCondition.set_column_condition(toFilter(mStrPool, *columnCondition));
-    }
-
-    pb.SerializeToZeroCopyStream(&mOStream);
-    giveBack(mStrPool, buf);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
+  pb.SerializeToZeroCopyStream(&mOStream);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
 }
 
-std::optional<OTSError> Serde<kApi_UpdateRow>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
+std::optional<OTSError>
+Serde<kApi_DescribeTable>::deserialize(ApiResponse &api,
+                                       deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
 
-    toCapacityUnit(
-        api.mutableConsumedCapacity(),
-        pb.consumed().capacity_unit());
+  // 1. meta
+  toTableMeta(api.mutableMeta(), pb.table_meta());
 
-    if (pb.has_row() && !pb.row().empty()) {
-        Row row;
-        TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
-        api.mutableRow().emplace(std::move(row));
+  // 2. Table Options
+  toTableOptions(api.mutableOptions(), pb.table_options());
+
+  // 3. SetReservedThroughputDetails
+  {
+    CapacityUnit cu;
+    toCapacityUnit(cu, pb.reserved_throughput_details().capacity_unit());
+    api.mutableOptions().mutableReservedThroughput().emplace(std::move(cu));
+  }
+
+  // 4. TableStatus
+  api.mutableStatus() = static_cast<TableStatus>(pb.table_status());
+
+  // 5. shard splits
+  {
+    IVector<PrimaryKey> &splits = api.mutableShardSplitPoints();
+    for (int64_t i = 0, sz = pb.shard_splits_size(); i < sz; ++i) {
+      const string &point = pb.shard_splits(i);
+      Row row;
+      TRY(plainbuffer::readRow(row, MemPiece::from(point)));
+      splits.append() = std::move(std::move(row.mutablePrimaryKey()));
     }
-
-    return std::optional<OTSError>();
+  }
+  return std::optional<OTSError>();
 }
 
+Serde<kApi_UpdateTable>::Serde(MemPool &mpool, util::StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool) {}
 
-Serde<kApi_DeleteRow>::Serde(MemPool& mpool, util::StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool)
-{}
+std::optional<OTSError>
+Serde<kApi_UpdateTable>::serialize(deque<MemPiece> &body,
+                                   const ApiRequest &api) {
+  PbRequest pb;
 
-std::optional<OTSError> Serde<kApi_DeleteRow>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    PbRequest pb;
-    deque<string*> buf;
+  pb.set_table_name(api.table());
 
-    const RowDeleteChange& rowChange = api.rowChange();
-    pb.set_table_name(rowChange.table());
-    pb.set_primary_key(plainbuffer::write(borrow(mStrPool, buf), rowChange));
+  if (api.options().reservedThroughput()) {
+    toCapacityUnit(*pb.mutable_reserved_throughput(),
+                   *api.options().reservedThroughput());
+  }
 
-    PB::ReturnContent& returnContent = *pb.mutable_return_content();
-    returnContent.set_return_type(toReturnType(rowChange.returnType()));
+  toTableOptionsForUpdateTable(*pb.mutable_table_options(), api.options());
 
-    const Condition& condition = rowChange.condition();
-    PB::Condition& pbCondition = *pb.mutable_condition();
-    pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
-
-    const shared_ptr<ColumnCondition>& columnCondition = condition.columnCondition();
-    if (columnCondition.get() != NULL) {
-        pbCondition.set_column_condition(toFilter(mStrPool, *columnCondition));
-    }
-
-    pb.SerializeToZeroCopyStream(&mOStream);
-    giveBack(mStrPool, buf);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
+  pb.SerializeToZeroCopyStream(&mOStream);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
 }
 
-std::optional<OTSError> Serde<kApi_DeleteRow>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
+std::optional<OTSError>
+Serde<kApi_UpdateTable>::deserialize(ApiResponse &api, deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
 
-    toCapacityUnit(
-        api.mutableConsumedCapacity(),
-        pb.consumed().capacity_unit());
-
-    if (pb.has_row() && !pb.row().empty()) {
-        Row row;
-        TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
-        api.mutableRow().emplace(std::move(row));
-    }
-
-    return std::optional<OTSError>();
+  return std::optional<OTSError>();
 }
 
+Serde<kApi_ComputeSplitsBySize>::Serde(MemPool &mpool, util::StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool) {}
 
-Serde<kApi_BatchGetRow>::Serde(MemPool& mpool, util::StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool),
-    mRequest(NULL)
-{}
+std::optional<OTSError>
+Serde<kApi_ComputeSplitsBySize>::serialize(deque<MemPiece> &body,
+                                           const ApiRequest &api) {
+  PbRequest pb;
 
-std::optional<OTSError> Serde<kApi_BatchGetRow>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    mRequest = &api;
-    PbRequest pb;
-    deque<string*> buf;
+  pb.set_table_name(api.table());
+  pb.set_split_size(api.splitSize());
 
-    for(int64_t i = 0, sz = api.criteria().size(); i < sz; ++i) {
-        const MultiPointQueryCriterion& criterion = api.criteria()[i];
-        PB::TableInBatchGetRowRequest& table = *pb.add_tables();
-        table.set_table_name(criterion.table());
-        for(int64_t j = 0, psz = criterion.rowKeys().size(); j < psz; ++j) {
-            table.add_primary_key(
-                plainbuffer::write(
-                    borrow(mStrPool, buf),
-                    criterion.rowKeys()[j].get()));
-        }
-        if (criterion.columnsToGet().size() > 0) {
-            for(int64_t j = 0, sz = criterion.columnsToGet().size(); j < sz; ++j) {
-                table.add_columns_to_get(criterion.columnsToGet()[j]);
-            }
-        }
-        if (criterion.timeRange()) {
-            toTimeRange(*table.mutable_time_range(), *criterion.timeRange());
-        }
-        if (criterion.maxVersions()) {
-            table.set_max_versions(*criterion.maxVersions());
-        }
-        if (criterion.cacheBlocks()) {
-            table.set_cache_blocks(*criterion.cacheBlocks());
-        }
-    }
-
-    pb.SerializeToZeroCopyStream(&mOStream);
-    giveBack(mStrPool, buf);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
+  pb.SerializeToZeroCopyStream(&mOStream);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
 }
 
 namespace {
 
-void mergeConsumedCapacity(CapacityUnit& result, const CapacityUnit& in)
-{
-    if (in.read()) {
-        if (result.read()) {
-            *result.mutableRead() += *in.read();
-        } else {
-            result.mutableRead() = in.read();
-        }
+void ComplementPrimaryKey(PrimaryKey &pkey, const Schema &schema,
+                          const PrimaryKeyValue &val) {
+  int64_t curSz = pkey.size();
+  if (curSz < schema.size()) {
+    for (int64_t i = curSz, sz = schema.size(); i < sz; ++i) {
+      pkey.append() = PrimaryKeyColumn(schema[i].name(), val);
     }
-    if (in.write()) {
-        if (result.write()) {
-            *result.mutableWrite() += *in.write();
-        } else {
-            result.mutableWrite() = in.write();
-        }
-    }
+  }
 }
 
 } // namespace
 
-std::optional<OTSError> Serde<kApi_BatchGetRow>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
+std::optional<OTSError>
+Serde<kApi_ComputeSplitsBySize>::deserialize(ApiResponse &api,
+                                             deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
 
-    for (int32_t i = 0; i < pb.tables_size(); ++i) {
-        const PB::TableInBatchGetRowResponse& pbTable = pb.tables(i);
-        for (int32_t j = 0; j < pbTable.rows_size(); ++j) {
-            const PB::RowInBatchGetRowResponse& pbRow = pbTable.rows(j);
-            Result<std::optional<Row>, OTSError>& row =
-                api.mutableResults().append().mutableGet();
-            if (pbRow.is_ok()) {
-                CapacityUnit consumedCapacity;
-                toCapacityUnit(
-                    consumedCapacity,
-                    pbRow.consumed().capacity_unit());
-                mergeConsumedCapacity(
-                    api.mutableConsumedCapacity(), consumedCapacity);
+  toCapacityUnit(api.mutableConsumedCapacity(), pb.consumed().capacity_unit());
 
-                if (!pbRow.row().empty()) {
-                    Row r;
-                    TRY(plainbuffer::readRow(r, MemPiece::from(pbRow.row())));
-                    row.mutableOkValue().emplace(std::move(r));
-                }
-            } else {
-                OTSError error;
-                toError(error, pbRow.error());
-                row.mutableErrValue() = util::move(error);
-            }
-        }
+  // 1. schema
+  for (int64_t i = 0; i < pb.schema_size(); ++i) {
+    PrimaryKeyColumnSchema &colSchema = api.mutableSchema().append();
+    const PB::PrimaryKeySchema &pbColSchema = pb.schema(i);
+    colSchema.mutableName() = pbColSchema.name();
+    colSchema.mutableType() = toPrimaryKeyType(pbColSchema.type());
+    if (pbColSchema.has_option()) {
+      *colSchema.mutableOption() = toPrimaryKeyOption(pbColSchema.option());
     }
+  }
 
-    {
-        int64_t i = 0;
-        for(int64_t criterionIdx = 0, criterionSz = mRequest->criteria().size();
-            criterionIdx < criterionSz;
-            ++criterionIdx)
-        {
-            const MultiPointQueryCriterion& criterion =
-                mRequest->criteria()[criterionIdx];
-            for(int64_t j = 0, sz = criterion.rowKeys().size(); j < sz; ++j, ++i) {
-                api.mutableResults()[i].mutableUserData() =
-                    criterion.rowKeys()[j].userData();
-            }
-        }
+  // 2. splits
+  {
+    const Schema &schema = api.schema();
+    const PrimaryKeyValue &infMin = PrimaryKeyValue::toInfMin();
+    const PrimaryKeyValue &infMax = PrimaryKeyValue::toInfMax();
+    shared_ptr<PrimaryKey> lower(new PrimaryKey());
+    ComplementPrimaryKey(*lower, schema, infMin);
+    for (int64_t i = 0, sz = pb.split_points_size(); i < sz; ++i) {
+      Split &split = api.mutableSplits().append();
+      split.mutableLowerBound() = lower;
+      {
+        const string &point = pb.split_points(i);
+        Row tmpRow;
+        TRY(plainbuffer::readRow(tmpRow, MemPiece::from(point)));
+        PrimaryKey &upper = tmpRow.mutablePrimaryKey();
+        ComplementPrimaryKey(upper, schema, infMin);
+        split.mutableUpperBound().reset(new PrimaryKey());
+        *split.mutableUpperBound() = std::move(std::move(upper));
+      }
+      lower = split.upperBound();
     }
+    Split &last = api.mutableSplits().append();
+    last.mutableLowerBound() = lower;
+    last.mutableUpperBound().reset(new PrimaryKey());
+    ComplementPrimaryKey(*last.mutableUpperBound(), schema, infMax);
+  }
 
-    return std::optional<OTSError>();
+  // 2.1 locations
+  {
+    int64_t splitIdx = 0;
+    for (int64_t i = 0, sz = pb.locations_size(); i < sz; ++i) {
+      const PB::ComputeSplitPointsBySizeResponse_SplitLocation &pbLoc =
+          pb.locations(i);
+      const string &location = pbLoc.location();
+      int64_t repeat = pbLoc.repeat();
+      for (; splitIdx < api.splits().size() && repeat > 0;
+           ++splitIdx, --repeat) {
+        api.mutableSplits()[splitIdx].mutableLocation() = location;
+      }
+      if (repeat > 0) {
+        OTSError e(OTSError::kPredefined_CorruptedResponse);
+        e.mutableMessage() = "Locations length is incorrect.";
+        return std::optional<OTSError>(std::move(e));
+      }
+    }
+    if (splitIdx != api.splits().size()) {
+      OTSError e(OTSError::kPredefined_CorruptedResponse);
+      e.mutableMessage() = "Locations length is incorrect.";
+      return std::optional<OTSError>(std::move(e));
+    }
+  }
+  return std::optional<OTSError>();
 }
 
+Serde<kApi_PutRow>::Serde(MemPool &mpool, util::StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool) {}
 
-Serde<kApi_BatchWriteRow>::Serde(MemPool& mpool, util::StrPool& spool)
-  : mOStream(&mpool),
-    mStrPool(spool),
-    mRequest(NULL)
-{}
+std::optional<OTSError> Serde<kApi_PutRow>::serialize(deque<MemPiece> &body,
+                                                      const ApiRequest &api) {
+  PbRequest pb;
+  deque<string *> buf;
 
-std::optional<OTSError> Serde<kApi_BatchWriteRow>::serialize(
-    deque<MemPiece>& body,
-    const ApiRequest& api)
-{
-    mRequest = &api;
-    PbRequest pb;
-    deque<string*> buf;
-    {
-        const IVector<BatchWriteRowRequest::Put>& rows = api.puts();
-        for(int64_t i = 0, sz = rows.size(); i < sz; ++i) {
-            mIndices[rows[i].get().table()].mPuts.push_back(i);
-        }
+  const RowPutChange &rc = api.rowChange();
+  pb.set_table_name(rc.table());
+  pb.set_row(plainbuffer::write(borrow(mStrPool, buf), rc));
+
+  PB::ReturnContent &returnContent = *pb.mutable_return_content();
+  returnContent.set_return_type(toReturnType(rc.returnType()));
+
+  const Condition &condition = rc.condition();
+  PB::Condition &pbCondition = *pb.mutable_condition();
+  pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
+
+  const shared_ptr<ColumnCondition> &columnCondition =
+      condition.columnCondition();
+  if (columnCondition.get() != NULL) {
+    pbCondition.set_column_condition(toFilter(mStrPool, *columnCondition));
+  }
+
+  pb.SerializeToZeroCopyStream(&mOStream);
+  giveBack(mStrPool, buf);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
+}
+
+std::optional<OTSError> Serde<kApi_PutRow>::deserialize(ApiResponse &api,
+                                                        deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
+
+  toCapacityUnit(api.mutableConsumedCapacity(), pb.consumed().capacity_unit());
+
+  if (pb.has_row() && !pb.row().empty()) {
+    Row row;
+    TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
+    api.mutableRow().emplace(std::move(row));
+  }
+
+  return std::optional<OTSError>();
+}
+
+Serde<kApi_GetRow>::Serde(MemPool &mpool, util::StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool) {}
+
+std::optional<OTSError> Serde<kApi_GetRow>::serialize(deque<MemPiece> &body,
+                                                      const ApiRequest &api) {
+  PbRequest pb;
+  deque<string *> buf;
+
+  const PointQueryCriterion &queryCriterion = api.queryCriterion();
+  pb.set_table_name(queryCriterion.table());
+  const PrimaryKey &primaryKey = queryCriterion.primaryKey();
+  pb.set_primary_key(plainbuffer::write(borrow(mStrPool, buf), primaryKey));
+
+  const IVector<string> &columnsToGet = queryCriterion.columnsToGet();
+  for (int64_t i = 0, sz = columnsToGet.size(); i < sz; ++i) {
+    pb.add_columns_to_get(columnsToGet[i]);
+  }
+  if (queryCriterion.timeRange()) {
+    toTimeRange(*pb.mutable_time_range(), *queryCriterion.timeRange());
+  }
+  if (queryCriterion.maxVersions()) {
+    pb.set_max_versions(*queryCriterion.maxVersions());
+  }
+  if (queryCriterion.cacheBlocks()) {
+    pb.set_cache_blocks(*queryCriterion.cacheBlocks());
+  }
+  if (queryCriterion.filter().get() != NULL) {
+    pb.set_filter(toFilter(mStrPool, *queryCriterion.filter()));
+  }
+
+  pb.SerializeToZeroCopyStream(&mOStream);
+  giveBack(mStrPool, buf);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
+}
+
+std::optional<OTSError> Serde<kApi_GetRow>::deserialize(ApiResponse &api,
+                                                        deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
+
+  toCapacityUnit(api.mutableConsumedCapacity(), pb.consumed().capacity_unit());
+
+  if (!pb.row().empty()) {
+    Row row;
+    TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
+    api.mutableRow().emplace(std::move(row));
+  }
+
+  return std::optional<OTSError>();
+}
+
+Serde<kApi_GetRange>::Serde(MemPool &mpool, util::StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool) {}
+
+std::optional<OTSError> Serde<kApi_GetRange>::serialize(deque<MemPiece> &body,
+                                                        const ApiRequest &api) {
+  PbRequest pb;
+  deque<string *> buf;
+
+  const RangeQueryCriterion &cri = api.queryCriterion();
+  pb.set_table_name(cri.table());
+  pb.set_direction(toDirection(cri.direction()));
+
+  const IVector<string> &columnsToGet = cri.columnsToGet();
+  for (int64_t i = 0, sz = columnsToGet.size(); i < sz; ++i) {
+    pb.add_columns_to_get(columnsToGet[i]);
+  }
+
+  if (cri.timeRange()) {
+    toTimeRange(*pb.mutable_time_range(), *cri.timeRange());
+  }
+  if (cri.maxVersions()) {
+    pb.set_max_versions(*cri.maxVersions());
+  }
+  if (cri.limit()) {
+    pb.set_limit(*cri.limit());
+  }
+  if (cri.cacheBlocks()) {
+    pb.set_cache_blocks(*cri.cacheBlocks());
+  }
+  if (cri.filter().get() != NULL) {
+    pb.set_filter(toFilter(mStrPool, *cri.filter()));
+  }
+
+  pb.set_inclusive_start_primary_key(
+      plainbuffer::write(borrow(mStrPool, buf), cri.inclusiveStart()));
+  pb.set_exclusive_end_primary_key(
+      plainbuffer::write(borrow(mStrPool, buf), cri.exclusiveEnd()));
+
+  pb.SerializeToZeroCopyStream(&mOStream);
+  giveBack(mStrPool, buf);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
+}
+
+std::optional<OTSError>
+Serde<kApi_GetRange>::deserialize(ApiResponse &api, deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
+
+  toCapacityUnit(api.mutableConsumedCapacity(), pb.consumed().capacity_unit());
+
+  if (!pb.rows().empty()) {
+    TRY(plainbuffer::readRows(api.mutableRows(), MemPiece::from(pb.rows())));
+  }
+
+  if (pb.has_next_start_primary_key()) {
+    Row nextStart;
+    TRY(plainbuffer::readRow(nextStart,
+                             MemPiece::from(pb.next_start_primary_key())));
+    api.mutableNextStart().emplace(std::move(nextStart.mutablePrimaryKey()));
+  }
+
+  return std::optional<OTSError>();
+}
+
+Serde<kApi_UpdateRow>::Serde(MemPool &mpool, util::StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool) {}
+
+std::optional<OTSError>
+Serde<kApi_UpdateRow>::serialize(deque<MemPiece> &body, const ApiRequest &api) {
+  PbRequest pb;
+  deque<string *> buf;
+
+  const RowUpdateChange &rc = api.rowChange();
+  pb.set_table_name(rc.table());
+  pb.set_row_change(plainbuffer::write(borrow(mStrPool, buf), rc));
+
+  PB::ReturnContent &returnContent = *pb.mutable_return_content();
+  returnContent.set_return_type(toReturnType(rc.returnType()));
+
+  const Condition &condition = rc.condition();
+  PB::Condition &pbCondition = *pb.mutable_condition();
+  pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
+
+  const shared_ptr<ColumnCondition> &columnCondition =
+      condition.columnCondition();
+  if (columnCondition.get() != NULL) {
+    pbCondition.set_column_condition(toFilter(mStrPool, *columnCondition));
+  }
+
+  pb.SerializeToZeroCopyStream(&mOStream);
+  giveBack(mStrPool, buf);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
+}
+
+std::optional<OTSError>
+Serde<kApi_UpdateRow>::deserialize(ApiResponse &api, deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
+
+  toCapacityUnit(api.mutableConsumedCapacity(), pb.consumed().capacity_unit());
+
+  if (pb.has_row() && !pb.row().empty()) {
+    Row row;
+    TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
+    api.mutableRow().emplace(std::move(row));
+  }
+
+  return std::optional<OTSError>();
+}
+
+Serde<kApi_DeleteRow>::Serde(MemPool &mpool, util::StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool) {}
+
+std::optional<OTSError>
+Serde<kApi_DeleteRow>::serialize(deque<MemPiece> &body, const ApiRequest &api) {
+  PbRequest pb;
+  deque<string *> buf;
+
+  const RowDeleteChange &rowChange = api.rowChange();
+  pb.set_table_name(rowChange.table());
+  pb.set_primary_key(plainbuffer::write(borrow(mStrPool, buf), rowChange));
+
+  PB::ReturnContent &returnContent = *pb.mutable_return_content();
+  returnContent.set_return_type(toReturnType(rowChange.returnType()));
+
+  const Condition &condition = rowChange.condition();
+  PB::Condition &pbCondition = *pb.mutable_condition();
+  pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
+
+  const shared_ptr<ColumnCondition> &columnCondition =
+      condition.columnCondition();
+  if (columnCondition.get() != NULL) {
+    pbCondition.set_column_condition(toFilter(mStrPool, *columnCondition));
+  }
+
+  pb.SerializeToZeroCopyStream(&mOStream);
+  giveBack(mStrPool, buf);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
+}
+
+std::optional<OTSError>
+Serde<kApi_DeleteRow>::deserialize(ApiResponse &api, deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
+
+  toCapacityUnit(api.mutableConsumedCapacity(), pb.consumed().capacity_unit());
+
+  if (pb.has_row() && !pb.row().empty()) {
+    Row row;
+    TRY(plainbuffer::readRow(row, MemPiece::from(pb.row())));
+    api.mutableRow().emplace(std::move(row));
+  }
+
+  return std::optional<OTSError>();
+}
+
+Serde<kApi_BatchGetRow>::Serde(MemPool &mpool, util::StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool), mRequest(NULL) {}
+
+std::optional<OTSError>
+Serde<kApi_BatchGetRow>::serialize(deque<MemPiece> &body,
+                                   const ApiRequest &api) {
+  mRequest = &api;
+  PbRequest pb;
+  deque<string *> buf;
+
+  for (int64_t i = 0, sz = api.criteria().size(); i < sz; ++i) {
+    const MultiPointQueryCriterion &criterion = api.criteria()[i];
+    PB::TableInBatchGetRowRequest &table = *pb.add_tables();
+    table.set_table_name(criterion.table());
+    for (int64_t j = 0, psz = criterion.rowKeys().size(); j < psz; ++j) {
+      table.add_primary_key(plainbuffer::write(borrow(mStrPool, buf),
+                                               criterion.rowKeys()[j].get()));
     }
-    {
-        const IVector<BatchWriteRowRequest::Update>& rows = api.updates();
-        for(int64_t i = 0, sz = rows.size(); i < sz; ++i) {
-            mIndices[rows[i].get().table()].mUpdates.push_back(i);
-        }
+    if (criterion.columnsToGet().size() > 0) {
+      for (int64_t j = 0, sz = criterion.columnsToGet().size(); j < sz; ++j) {
+        table.add_columns_to_get(criterion.columnsToGet()[j]);
+      }
     }
-    {
-        const IVector<BatchWriteRowRequest::Delete>& rows = api.deletes();
-        for(int64_t i = 0, sz = rows.size(); i < sz; ++i) {
-            mIndices[rows[i].get().table()].mDeletes.push_back(i);
-        }
+    if (criterion.timeRange()) {
+      toTimeRange(*table.mutable_time_range(), *criterion.timeRange());
     }
-
-    FOREACH_ITER(i, mIndices) {
-        const string& tableName = i->first;
-        PB::TableInBatchWriteRowRequest& pbTable = *pb.add_tables();
-        pbTable.set_table_name(tableName);
-
-        FOREACH_ITER(j, i->second.mPuts) {
-            const RowPutChange& row = api.puts()[*j].get();
-            PB::RowInBatchWriteRowRequest& rowInRequest = *pbTable.add_rows();
-            rowInRequest.set_type(PB::PUT);
-            rowInRequest.set_row_change(
-                plainbuffer::write(
-                    borrow(mStrPool, buf),
-                    row));
-
-            PB::ReturnContent& returnContent = *rowInRequest.mutable_return_content();
-            returnContent.set_return_type(toReturnType(row.returnType()));
-
-            const Condition& condition = row.condition();
-            PB::Condition& pbCondition = *rowInRequest.mutable_condition();
-            pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
-
-            const shared_ptr<ColumnCondition>& columnCondition = condition.columnCondition();
-            if (columnCondition.get() != NULL) {
-                pbCondition.set_column_condition(
-                    toFilter(mStrPool, *columnCondition));
-            }
-        }
-        FOREACH_ITER(j, i->second.mUpdates) {
-            const RowUpdateChange& row = api.updates()[*j].get();
-            PB::RowInBatchWriteRowRequest& rowInRequest = *pbTable.add_rows();
-            rowInRequest.set_type(PB::UPDATE);
-            rowInRequest.set_row_change(
-                plainbuffer::write(
-                    borrow(mStrPool, buf),
-                    row));
-
-            PB::ReturnContent& returnContent = *rowInRequest.mutable_return_content();
-            returnContent.set_return_type(toReturnType(row.returnType()));
-
-            const Condition& condition = row.condition();
-            PB::Condition& pbCondition = *rowInRequest.mutable_condition();
-            pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
-
-            const shared_ptr<ColumnCondition>& columnCondition = condition.columnCondition();
-            if (columnCondition.get() != NULL) {
-                pbCondition.set_column_condition(
-                    toFilter(mStrPool, *columnCondition));
-            }
-        }
-        FOREACH_ITER(j, i->second.mDeletes) {
-            const RowDeleteChange& row = api.deletes()[*j].get();
-            PB::RowInBatchWriteRowRequest& rowInRequest = *pbTable.add_rows();
-            rowInRequest.set_type(PB::DELETE);
-            rowInRequest.set_row_change(
-                plainbuffer::write(
-                    borrow(mStrPool, buf),
-                    row));
-
-            PB::ReturnContent& returnContent = *rowInRequest.mutable_return_content();
-            returnContent.set_return_type(toReturnType(row.returnType()));
-
-            const Condition& condition = row.condition();
-            PB::Condition& pbCondition = *rowInRequest.mutable_condition();
-            pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
-
-            const shared_ptr<ColumnCondition>& columnCondition = condition.columnCondition();
-            if (columnCondition.get() != NULL) {
-                pbCondition.set_column_condition(
-                    toFilter(mStrPool, *columnCondition));
-            }
-        }
+    if (criterion.maxVersions()) {
+      table.set_max_versions(*criterion.maxVersions());
     }
+    if (criterion.cacheBlocks()) {
+      table.set_cache_blocks(*criterion.cacheBlocks());
+    }
+  }
 
-    pb.SerializeToZeroCopyStream(&mOStream);
-    giveBack(mStrPool, buf);
-    moveAssign(body, mOStream.pieces());
-    return std::optional<OTSError>();
+  pb.SerializeToZeroCopyStream(&mOStream);
+  giveBack(mStrPool, buf);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
 }
 
 namespace {
 
-void to(
-    CapacityUnit& consumedCapacity,
-    BatchWriteRowResponse::Result& result,
-    const PB::RowInBatchWriteRowResponse& pbResponseRow)
-{
-    if (pbResponseRow.is_ok()) {
-        CapacityUnit cu;
-        toCapacityUnit(cu, pbResponseRow.consumed().capacity_unit());
-        mergeConsumedCapacity(consumedCapacity, cu);
-
-        if (pbResponseRow.has_row() && !pbResponseRow.row().empty()) {
-            Row row;
-            std::optional<OTSError> err =
-                plainbuffer::readRow(row, MemPiece::from(pbResponseRow.row()));
-            if (err) {
-                result.mutableGet().mutableErrValue() = util::move(*err);
-            } else {
-                result.mutableGet().mutableOkValue().emplace(std::move(row));
-            }
-        }
+void mergeConsumedCapacity(CapacityUnit &result, const CapacityUnit &in) {
+  if (in.read()) {
+    if (result.read()) {
+      *result.mutableRead() += *in.read();
     } else {
-        OTSError error;
-        toError(error, pbResponseRow.error());
-        result.mutableGet().mutableErrValue() = util::move(error);
+      result.mutableRead() = in.read();
     }
+  }
+  if (in.write()) {
+    if (result.write()) {
+      *result.mutableWrite() += *in.write();
+    } else {
+      result.mutableWrite() = in.write();
+    }
+  }
 }
 
 } // namespace
 
-std::optional<OTSError> Serde<kApi_BatchWriteRow>::deserialize(
-    ApiResponse& api,
-    deque<MemPiece>& body)
-{
-    PbResponse pb;
-    TRY(parseBody(pb, body));
+std::optional<OTSError>
+Serde<kApi_BatchGetRow>::deserialize(ApiResponse &api, deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
 
-    if (static_cast<int64_t>(mIndices.size()) != pb.tables_size()) {
-        OTSError err(OTSError::kPredefined_CorruptedResponse);
-        err.mutableMessage() = "Invalid response";
-        return std::optional<OTSError>(util::move(err));
-    }
+  for (int32_t i = 0; i < pb.tables_size(); ++i) {
+    const PB::TableInBatchGetRowResponse &pbTable = pb.tables(i);
+    for (int32_t j = 0; j < pbTable.rows_size(); ++j) {
+      const PB::RowInBatchGetRowResponse &pbRow = pbTable.rows(j);
+      Result<std::optional<Row>, OTSError> &row =
+          api.mutableResults().append().mutableGet();
+      if (pbRow.is_ok()) {
+        CapacityUnit consumedCapacity;
+        toCapacityUnit(consumedCapacity, pbRow.consumed().capacity_unit());
+        mergeConsumedCapacity(api.mutableConsumedCapacity(), consumedCapacity);
 
-    for(int64_t i = 0, sz = mRequest->puts().size(); i < sz; ++i) {
-        BatchWriteRowResponse::Result& result = api.mutablePutResults().append();
-        result.mutableUserData() = mRequest->puts()[i].userData();
+        if (!pbRow.row().empty()) {
+          Row r;
+          TRY(plainbuffer::readRow(r, MemPiece::from(pbRow.row())));
+          row.mutableOkValue().emplace(std::move(r));
+        }
+      } else {
+        OTSError error;
+        toError(error, pbRow.error());
+        row.mutableErrValue() = std::move(error);
+      }
     }
-    for(int64_t i = 0, sz = mRequest->updates().size(); i < sz; ++i) {
-        BatchWriteRowResponse::Result& result = api.mutableUpdateResults().append();
-        result.mutableUserData() = mRequest->updates()[i].userData();
-    }
-    for(int64_t i = 0, sz = mRequest->deletes().size(); i < sz; ++i) {
-        BatchWriteRowResponse::Result& result = api.mutableDeleteResults().append();
-        result.mutableUserData() = mRequest->deletes()[i].userData();
-    }
-    for(int64_t i = 0, sz = pb.tables_size(); i < sz; ++i) {
-        const PB::TableInBatchWriteRowResponse& pbResponseTable = pb.tables(i);
-        const string& tableName = pbResponseTable.table_name();
-        Indices::const_iterator it = mIndices.find(tableName);
-        if (it == mIndices.end()) {
-            OTSError err(OTSError::kPredefined_CorruptedResponse);
-            err.mutableMessage() = "Invalid response";
-            return std::optional<OTSError>(util::move(err));
-        }
-        const Index& idxes = it->second;
-        if (idxes.mPuts.size() + idxes.mUpdates.size() + idxes.mDeletes.size()
-            != static_cast<size_t>(pbResponseTable.rows_size()))
-        {
-            OTSError err(OTSError::kPredefined_CorruptedResponse);
-            err.mutableMessage() = "Invalid response";
-            return std::optional<OTSError>(util::move(err));
-        }
-        int64_t pbIdx = 0;
-        FOREACH_ITER(it, idxes.mPuts) {
-            const PB::RowInBatchWriteRowResponse& pbResponseRow =
-                pbResponseTable.rows(pbIdx);
-            to(api.mutableConsumedCapacity(),
-                api.mutablePutResults()[*it],
-                pbResponseRow);
-            ++pbIdx;
-        }
-        FOREACH_ITER(it, idxes.mUpdates) {
-            const PB::RowInBatchWriteRowResponse& pbResponseRow =
-                pbResponseTable.rows(pbIdx);
-            to(api.mutableConsumedCapacity(),
-                api.mutableUpdateResults()[*it],
-                pbResponseRow);
-            ++pbIdx;
-        }
-        FOREACH_ITER(it, idxes.mDeletes) {
-            const PB::RowInBatchWriteRowResponse& pbResponseRow =
-                pbResponseTable.rows(pbIdx);
-            to(api.mutableConsumedCapacity(),
-                api.mutableDeleteResults()[*it],
-                pbResponseRow);
-            ++pbIdx;
-        }
-    }
+  }
 
-    return std::optional<OTSError>();
+  {
+    int64_t i = 0;
+    for (int64_t criterionIdx = 0, criterionSz = mRequest->criteria().size();
+         criterionIdx < criterionSz; ++criterionIdx) {
+      const MultiPointQueryCriterion &criterion =
+          mRequest->criteria()[criterionIdx];
+      for (int64_t j = 0, sz = criterion.rowKeys().size(); j < sz; ++j, ++i) {
+        api.mutableResults()[i].mutableUserData() =
+            criterion.rowKeys()[j].userData();
+      }
+    }
+  }
+
+  return std::optional<OTSError>();
+}
+
+Serde<kApi_BatchWriteRow>::Serde(MemPool &mpool, util::StrPool &spool)
+    : mOStream(&mpool), mStrPool(spool), mRequest(NULL) {}
+
+std::optional<OTSError>
+Serde<kApi_BatchWriteRow>::serialize(deque<MemPiece> &body,
+                                     const ApiRequest &api) {
+  mRequest = &api;
+  PbRequest pb;
+  deque<string *> buf;
+  {
+    const IVector<BatchWriteRowRequest::Put> &rows = api.puts();
+    for (int64_t i = 0, sz = rows.size(); i < sz; ++i) {
+      mIndices[rows[i].get().table()].mPuts.push_back(i);
+    }
+  }
+  {
+    const IVector<BatchWriteRowRequest::Update> &rows = api.updates();
+    for (int64_t i = 0, sz = rows.size(); i < sz; ++i) {
+      mIndices[rows[i].get().table()].mUpdates.push_back(i);
+    }
+  }
+  {
+    const IVector<BatchWriteRowRequest::Delete> &rows = api.deletes();
+    for (int64_t i = 0, sz = rows.size(); i < sz; ++i) {
+      mIndices[rows[i].get().table()].mDeletes.push_back(i);
+    }
+  }
+
+  FOREACH_ITER(i, mIndices) {
+    const string &tableName = i->first;
+    PB::TableInBatchWriteRowRequest &pbTable = *pb.add_tables();
+    pbTable.set_table_name(tableName);
+
+    FOREACH_ITER(j, i->second.mPuts) {
+      const RowPutChange &row = api.puts()[*j].get();
+      PB::RowInBatchWriteRowRequest &rowInRequest = *pbTable.add_rows();
+      rowInRequest.set_type(PB::PUT);
+      rowInRequest.set_row_change(
+          plainbuffer::write(borrow(mStrPool, buf), row));
+
+      PB::ReturnContent &returnContent = *rowInRequest.mutable_return_content();
+      returnContent.set_return_type(toReturnType(row.returnType()));
+
+      const Condition &condition = row.condition();
+      PB::Condition &pbCondition = *rowInRequest.mutable_condition();
+      pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
+
+      const shared_ptr<ColumnCondition> &columnCondition =
+          condition.columnCondition();
+      if (columnCondition.get() != NULL) {
+        pbCondition.set_column_condition(toFilter(mStrPool, *columnCondition));
+      }
+    }
+    FOREACH_ITER(j, i->second.mUpdates) {
+      const RowUpdateChange &row = api.updates()[*j].get();
+      PB::RowInBatchWriteRowRequest &rowInRequest = *pbTable.add_rows();
+      rowInRequest.set_type(PB::UPDATE);
+      rowInRequest.set_row_change(
+          plainbuffer::write(borrow(mStrPool, buf), row));
+
+      PB::ReturnContent &returnContent = *rowInRequest.mutable_return_content();
+      returnContent.set_return_type(toReturnType(row.returnType()));
+
+      const Condition &condition = row.condition();
+      PB::Condition &pbCondition = *rowInRequest.mutable_condition();
+      pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
+
+      const shared_ptr<ColumnCondition> &columnCondition =
+          condition.columnCondition();
+      if (columnCondition.get() != NULL) {
+        pbCondition.set_column_condition(toFilter(mStrPool, *columnCondition));
+      }
+    }
+    FOREACH_ITER(j, i->second.mDeletes) {
+      const RowDeleteChange &row = api.deletes()[*j].get();
+      PB::RowInBatchWriteRowRequest &rowInRequest = *pbTable.add_rows();
+      rowInRequest.set_type(PB::DELETE);
+      rowInRequest.set_row_change(
+          plainbuffer::write(borrow(mStrPool, buf), row));
+
+      PB::ReturnContent &returnContent = *rowInRequest.mutable_return_content();
+      returnContent.set_return_type(toReturnType(row.returnType()));
+
+      const Condition &condition = row.condition();
+      PB::Condition &pbCondition = *rowInRequest.mutable_condition();
+      pbCondition.set_row_existence(toRowExistence(condition.rowCondition()));
+
+      const shared_ptr<ColumnCondition> &columnCondition =
+          condition.columnCondition();
+      if (columnCondition.get() != NULL) {
+        pbCondition.set_column_condition(toFilter(mStrPool, *columnCondition));
+      }
+    }
+  }
+
+  pb.SerializeToZeroCopyStream(&mOStream);
+  giveBack(mStrPool, buf);
+  body = std::move(mOStream.pieces());
+  return std::optional<OTSError>();
+}
+
+namespace {
+
+void to(CapacityUnit &consumedCapacity, BatchWriteRowResponse::Result &result,
+        const PB::RowInBatchWriteRowResponse &pbResponseRow) {
+  if (pbResponseRow.is_ok()) {
+    CapacityUnit cu;
+    toCapacityUnit(cu, pbResponseRow.consumed().capacity_unit());
+    mergeConsumedCapacity(consumedCapacity, cu);
+
+    if (pbResponseRow.has_row() && !pbResponseRow.row().empty()) {
+      Row row;
+      std::optional<OTSError> err =
+          plainbuffer::readRow(row, MemPiece::from(pbResponseRow.row()));
+      if (err) {
+        result.mutableGet().mutableErrValue() = std::move(*err);
+      } else {
+        result.mutableGet().mutableOkValue().emplace(std::move(row));
+      }
+    }
+  } else {
+    OTSError error;
+    toError(error, pbResponseRow.error());
+    result.mutableGet().mutableErrValue() = std::move(error);
+  }
+}
+
+} // namespace
+
+std::optional<OTSError>
+Serde<kApi_BatchWriteRow>::deserialize(ApiResponse &api,
+                                       deque<MemPiece> &body) {
+  PbResponse pb;
+  TRY(parseBody(pb, body));
+
+  if (static_cast<int64_t>(mIndices.size()) != pb.tables_size()) {
+    OTSError err(OTSError::kPredefined_CorruptedResponse);
+    err.mutableMessage() = "Invalid response";
+    return std::optional<OTSError>(std::move(err));
+  }
+
+  for (int64_t i = 0, sz = mRequest->puts().size(); i < sz; ++i) {
+    BatchWriteRowResponse::Result &result = api.mutablePutResults().append();
+    result.mutableUserData() = mRequest->puts()[i].userData();
+  }
+  for (int64_t i = 0, sz = mRequest->updates().size(); i < sz; ++i) {
+    BatchWriteRowResponse::Result &result = api.mutableUpdateResults().append();
+    result.mutableUserData() = mRequest->updates()[i].userData();
+  }
+  for (int64_t i = 0, sz = mRequest->deletes().size(); i < sz; ++i) {
+    BatchWriteRowResponse::Result &result = api.mutableDeleteResults().append();
+    result.mutableUserData() = mRequest->deletes()[i].userData();
+  }
+  for (int64_t i = 0, sz = pb.tables_size(); i < sz; ++i) {
+    const PB::TableInBatchWriteRowResponse &pbResponseTable = pb.tables(i);
+    const string &tableName = pbResponseTable.table_name();
+    Indices::const_iterator it = mIndices.find(tableName);
+    if (it == mIndices.end()) {
+      OTSError err(OTSError::kPredefined_CorruptedResponse);
+      err.mutableMessage() = "Invalid response";
+      return std::optional<OTSError>(std::move(err));
+    }
+    const Index &idxes = it->second;
+    if (idxes.mPuts.size() + idxes.mUpdates.size() + idxes.mDeletes.size() !=
+        static_cast<size_t>(pbResponseTable.rows_size())) {
+      OTSError err(OTSError::kPredefined_CorruptedResponse);
+      err.mutableMessage() = "Invalid response";
+      return std::optional<OTSError>(std::move(err));
+    }
+    int64_t pbIdx = 0;
+    FOREACH_ITER(it, idxes.mPuts) {
+      const PB::RowInBatchWriteRowResponse &pbResponseRow =
+          pbResponseTable.rows(pbIdx);
+      to(api.mutableConsumedCapacity(), api.mutablePutResults()[*it],
+         pbResponseRow);
+      ++pbIdx;
+    }
+    FOREACH_ITER(it, idxes.mUpdates) {
+      const PB::RowInBatchWriteRowResponse &pbResponseRow =
+          pbResponseTable.rows(pbIdx);
+      to(api.mutableConsumedCapacity(), api.mutableUpdateResults()[*it],
+         pbResponseRow);
+      ++pbIdx;
+    }
+    FOREACH_ITER(it, idxes.mDeletes) {
+      const PB::RowInBatchWriteRowResponse &pbResponseRow =
+          pbResponseTable.rows(pbIdx);
+      to(api.mutableConsumedCapacity(), api.mutableDeleteResults()[*it],
+         pbResponseRow);
+      ++pbIdx;
+    }
+  }
+
+  return std::optional<OTSError>();
 }
 
 } // namespace impl

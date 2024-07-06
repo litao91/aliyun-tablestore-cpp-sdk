@@ -215,7 +215,7 @@ void PlainBufferCodedInputStream::ReadPrimaryKeyColumn(
     ReadPrimaryKeyValue(&primaryKeyValue, &cellChecksum);
     PrimaryKeyColumn primaryKeyColumn;
     primaryKeyColumn.mutableName() = columnName;
-    moveAssign(primaryKeyColumn.mutableValue(), util::move(primaryKeyValue));
+    moveAssign(primaryKeyColumn.mutableValue(), std::move(primaryKeyValue));
 
     if (GetLastTag() == TAG_CELL_CHECKSUM) {
         int8_t checksum = mInputStream->ReadRawByte();
@@ -230,7 +230,7 @@ void PlainBufferCodedInputStream::ReadPrimaryKeyColumn(
     }
     *rowChecksum = PlainBufferCrc8::CrcInt8(*rowChecksum, cellChecksum);
 
-    moveAssign(*column, util::move(primaryKeyColumn));
+    moveAssign(*column, std::move(primaryKeyColumn));
 }
 
 void PlainBufferCodedInputStream::ReadColumn(
@@ -257,7 +257,7 @@ void PlainBufferCodedInputStream::ReadColumn(
     if (GetLastTag() == TAG_CELL_VALUE) {
         AttributeValue val;
         ReadColumnValue(&val, &cellChecksum);
-        moveAssign(tmpColumn.mutableValue(), util::move(val));
+        moveAssign(tmpColumn.mutableValue(), std::move(val));
     }
 
     // skip CELL_TYPE
@@ -287,7 +287,7 @@ void PlainBufferCodedInputStream::ReadColumn(
     }
     *rowChecksum = PlainBufferCrc8::CrcInt8(*rowChecksum, cellChecksum);
 
-    moveAssign(*column, util::move(tmpColumn));
+    moveAssign(*column, std::move(tmpColumn));
 }
 
 void PlainBufferCodedInputStream::ReadRowWithoutHeader(Row* row)
@@ -304,7 +304,7 @@ void PlainBufferCodedInputStream::ReadRowWithoutHeader(Row* row)
     while (CheckLastTagWas(TAG_CELL)) {
         PrimaryKeyColumn primaryKeyColumn;
         ReadPrimaryKeyColumn(&primaryKeyColumn, &rowChecksum);
-        moveAssign(row->mutablePrimaryKey().append(), util::move(primaryKeyColumn));
+        moveAssign(row->mutablePrimaryKey().append(), std::move(primaryKeyColumn));
     }
 
     // parse columns.
@@ -358,7 +358,7 @@ void PlainBufferCodedInputStream::ReadRows(
     while (!mInputStream->IsAtEnd()) {
         Row row;
         ReadRowWithoutHeader(&row);
-        moveAssign(rows->append(), util::move(row));
+        moveAssign(rows->append(), std::move(row));
     }
 }
 

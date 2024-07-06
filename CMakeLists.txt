@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.28)
 
 project(ots)
 
@@ -8,4 +8,5 @@ find_package(Boost 1.85.0 REQUIRED COMPONENTS system)
 if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
 endif()
+find_package(Protobuf REQUIRED)
 add_subdirectory(src)

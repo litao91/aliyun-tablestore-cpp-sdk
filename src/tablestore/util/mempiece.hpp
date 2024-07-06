@@ -32,7 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "tablestore/util/assert.hpp"
 #include "tablestore/util/foreach.hpp"
-#include "tablestore/util/move.hpp"
 #include <algorithm>
 #include <cstring>
 #include <stdint.h>
@@ -61,14 +60,9 @@ public:
   explicit MemPiece(const void *data, int64_t len)
       : mData(static_cast<const uint8_t *>(data)), mLen(len) {}
 
-  explicit MemPiece(const MoveHolder<MemPiece> &ano)
-      : mData(ano->data()), mLen(ano->length()) {}
+  explicit MemPiece(MemPiece &&ano) = default;
 
-  MemPiece &operator=(const MoveHolder<MemPiece> &ano) {
-    mData = ano->data();
-    mLen = ano->length();
-    return *this;
-  }
+  MemPiece &operator=(MemPiece &&ano) = default;
 
   template <class T> static MemPiece from(const T &x) {
     impl::ToMemPiece<T> p;
@@ -87,9 +81,9 @@ public:
     return res;
   }
 
-  const uint8_t *data() const throw() { return mData; }
+  const uint8_t *data() const noexcept { return mData; }
 
-  int64_t length() const throw() { return mLen; }
+  int64_t length() const noexcept { return mLen; }
 
   MemPiece subpiece(int64_t start) const {
     OTS_ASSERT(start <= length())
@@ -121,7 +115,7 @@ public:
 
   void prettyPrint(std::string &) const;
 
-  bool startsWith(const MemPiece &b) const throw() {
+  bool startsWith(const MemPiece &b) const noexcept {
     if (length() < b.length()) {
       return false;
     }
@@ -135,7 +129,7 @@ public:
     return c == 0;
   }
 
-  bool endsWith(const MemPiece &b) const throw() {
+  bool endsWith(const MemPiece &b) const noexcept {
     if (length() < b.length()) {
       return false;
     }
@@ -165,12 +159,12 @@ public:
       : mBegin(static_cast<uint8_t *>(begin)),
         mEnd(static_cast<uint8_t *>(end)) {}
 
-  explicit MutableMemPiece(const MoveHolder<MutableMemPiece> &a) { *this = a; }
+  explicit MutableMemPiece(MutableMemPiece &&a) { *this = std::move(a); }
 
-  MutableMemPiece &operator=(const MoveHolder<MutableMemPiece> &a) {
-    mBegin = a->begin();
-    mEnd = a->end();
-    a->reset();
+  MutableMemPiece &operator=(MutableMemPiece &&a) {
+    mBegin = a.begin();
+    mEnd = a.end();
+    a.reset();
     return *this;
   }
 
@@ -179,11 +173,11 @@ public:
     mEnd = NULL;
   }
 
-  uint8_t *begin() const throw() { return mBegin; }
+  uint8_t *begin() const noexcept { return mBegin; }
 
-  uint8_t *end() const throw() { return mEnd; }
+  uint8_t *end() const noexcept { return mEnd; }
 
-  int64_t length() const throw() { return mEnd - mBegin; }
+  int64_t length() const noexcept { return mEnd - mBegin; }
 
   MutableMemPiece subpiece(void *begin) const {
     OTS_ASSERT(mBegin <= begin && begin <= mEnd)

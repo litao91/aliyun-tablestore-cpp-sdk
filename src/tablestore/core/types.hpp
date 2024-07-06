@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/core/error.hpp"
 #include "tablestore/util/logger.hpp"
 #include "tablestore/util/mempiece.hpp"
-#include "tablestore/util/move.hpp"
 #include "tablestore/util/prettyprint.hpp"
 #include "tablestore/util/random.hpp"
 #include "tablestore/util/result.hpp"
@@ -175,17 +174,11 @@ template <class Elem> class DequeBasedVector : public IVector<Elem> {
 public:
   typedef typename IVector<Elem>::ElemType ElemType;
 
-  explicit DequeBasedVector() {}
-  explicit DequeBasedVector(
-      const util::MoveHolder<DequeBasedVector<ElemType>> &a) {
-    *this = a;
-  }
+  explicit DequeBasedVector() = default;
+  explicit DequeBasedVector(const DequeBasedVector &) = default;
+  explicit DequeBasedVector(DequeBasedVector &&) = default;
 
-  DequeBasedVector<ElemType> &
-  operator=(const util::MoveHolder<DequeBasedVector<ElemType>> &a) {
-    util::moveAssign(mElems, util::move(a->mElems));
-    return *this;
-  }
+  DequeBasedVector &operator=(DequeBasedVector &&a) = default;
 
   void prettyPrint(std::string &out) const { IVector<Elem>::prettyPrint(out); }
 
@@ -218,10 +211,11 @@ private:
 
 class Endpoint {
 public:
-  explicit Endpoint() {}
+  explicit Endpoint() = default;
   explicit Endpoint(const std::string &endpoint, const std::string &instance);
-  explicit Endpoint(const util::MoveHolder<Endpoint> &a);
-  Endpoint &operator=(const util::MoveHolder<Endpoint> &a);
+  Endpoint(const Endpoint &a) = default;
+  Endpoint(Endpoint &&a) = default;
+  Endpoint &operator=(Endpoint &&a) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -254,9 +248,10 @@ public:
       : mAccessKeyId(accessKeyId), mAccessKeySecret(accessKeySecret),
         mSecurityToken(securityToken) {}
 
-  explicit Credential(const util::MoveHolder<Credential> &);
+  Credential(Credential &&) = default;
 
-  Credential &operator=(const util::MoveHolder<Credential> &);
+  Credential &operator=(Credential const &) = default;
+  Credential &operator=(Credential &&) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -289,9 +284,11 @@ public:
     calculateHash();
   }
 
-  explicit Tracker(const util::MoveHolder<Tracker> &a) { *this = a; }
+  explicit Tracker(const Tracker &a) = default;
+  explicit Tracker(Tracker &&a) = default;
 
-  Tracker &operator=(const util::MoveHolder<Tracker> &a);
+  Tracker &operator=(const Tracker &a) = default;
+  Tracker &operator=(Tracker &&a) = default;
 
   static Tracker create(util::Random &);
 
@@ -313,9 +310,9 @@ private:
 class ClientOptions {
 public:
   explicit ClientOptions();
-  explicit ClientOptions(const util::MoveHolder<ClientOptions> &);
+  explicit ClientOptions(ClientOptions &&) = default;
 
-  ClientOptions &operator=(const util::MoveHolder<ClientOptions> &);
+  ClientOptions &operator=(ClientOptions &&) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -374,13 +371,9 @@ public:
                                   Option opt)
       : mName(name), mType(type), mOption(opt) {}
 
-  explicit PrimaryKeyColumnSchema(
-      const util::MoveHolder<PrimaryKeyColumnSchema> &a) {
-    operator=(a);
-  }
+  explicit PrimaryKeyColumnSchema(PrimaryKeyColumnSchema &&a) = default;
 
-  PrimaryKeyColumnSchema &
-  operator=(const util::MoveHolder<PrimaryKeyColumnSchema> &a);
+  PrimaryKeyColumnSchema &operator=(PrimaryKeyColumnSchema &&a) = default;
 
   const std::string &name() const { return mName; }
 
@@ -408,14 +401,9 @@ class Schema : public IVector<PrimaryKeyColumnSchema> {
 public:
   explicit Schema() {}
 
-  explicit Schema(const util::MoveHolder<Schema> &a) {
-    util::moveAssign(mColumns, util::move(a->mColumns));
-  }
+  explicit Schema(Schema &&a) = default;
 
-  Schema &operator=(const util::MoveHolder<Schema> &a) {
-    util::moveAssign(mColumns, util::move(a->mColumns));
-    return *this;
-  }
+  Schema &operator=(Schema &&) = default;
 
   int64_t size() const { return mColumns.size(); }
 
@@ -470,8 +458,9 @@ private:
 
 public:
   explicit PrimaryKeyValue();
-  explicit PrimaryKeyValue(const util::MoveHolder<PrimaryKeyValue> &);
-  PrimaryKeyValue &operator=(const util::MoveHolder<PrimaryKeyValue> &);
+  explicit PrimaryKeyValue(PrimaryKeyValue &&) = default;
+  PrimaryKeyValue(const PrimaryKeyValue &) = default;
+  PrimaryKeyValue &operator=(PrimaryKeyValue &&) = default;
 
   Category category() const;
   void prettyPrint(std::string &) const;
@@ -563,12 +552,11 @@ private:
 class PrimaryKeyColumn {
 public:
   explicit PrimaryKeyColumn();
-  explicit PrimaryKeyColumn(const std::string &, const PrimaryKeyValue &);
-  explicit PrimaryKeyColumn(const util::MoveHolder<PrimaryKeyColumn> &a) {
-    *this = a;
-  }
+  PrimaryKeyColumn(const std::string &, const PrimaryKeyValue &);
+  PrimaryKeyColumn(const PrimaryKeyColumn &&a)
+      : mName(std::move(a.mName)), mValue(std::move(a.mValue)) {}
 
-  PrimaryKeyColumn &operator=(const util::MoveHolder<PrimaryKeyColumn> &);
+  PrimaryKeyColumn &operator=(PrimaryKeyColumn &&) = default;
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -591,13 +579,11 @@ private:
 
 class PrimaryKey : public IVector<PrimaryKeyColumn> {
 public:
-  explicit PrimaryKey() {}
-  explicit PrimaryKey(const util::MoveHolder<PrimaryKey> &a) { *this = a; }
+  explicit PrimaryKey() = default;
+  PrimaryKey(const PrimaryKey &) = default;
+  explicit PrimaryKey(PrimaryKey &&a) = default;
 
-  PrimaryKey &operator=(const util::MoveHolder<PrimaryKey> &a) {
-    util::moveAssign(mColumns, util::move(a->mColumns));
-    return *this;
-  }
+  PrimaryKey &operator=(PrimaryKey &&a) = default;
 
   int64_t size() const { return mColumns.size(); }
 
@@ -629,17 +615,13 @@ private:
  */
 class TableMeta {
 public:
-  explicit TableMeta() {}
+  explicit TableMeta() = default;
 
   explicit TableMeta(const std::string &tableName) : mTableName(tableName) {}
 
-  explicit TableMeta(const util::MoveHolder<TableMeta> &a) { *this = a; }
+  explicit TableMeta(TableMeta &&a) = default;
 
-  TableMeta &operator=(const util::MoveHolder<TableMeta> &a) {
-    util::moveAssign(mTableName, util::move(a->mTableName));
-    util::moveAssign(mSchema, util::move(a->mSchema));
-    return *this;
-  }
+  TableMeta &operator=(TableMeta &&a) = default;
 
   const std::string &tableName() const { return mTableName; }
 
@@ -665,9 +647,10 @@ public:
   explicit CapacityUnit(int64_t readCU, int64_t writeCU)
       : mRead(readCU), mWrite(writeCU) {}
 
-  explicit CapacityUnit(const util::MoveHolder<CapacityUnit> &a) { *this = a; }
+  explicit CapacityUnit(CapacityUnit &&a) = default;
+  explicit CapacityUnit(const CapacityUnit &a) = default;
 
-  CapacityUnit &operator=(const util::MoveHolder<CapacityUnit> &a);
+  CapacityUnit &operator=(CapacityUnit &&a) = default;
 
   const std::optional<int64_t> read() const { return mRead; }
 
@@ -693,9 +676,9 @@ class TableOptions {
 public:
   explicit TableOptions() {}
 
-  explicit TableOptions(const util::MoveHolder<TableOptions> &a) { *this = a; }
+  explicit TableOptions(TableOptions &&a) = default;
 
-  TableOptions &operator=(const util::MoveHolder<TableOptions> &a);
+  TableOptions &operator=(TableOptions &&a);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -771,10 +754,9 @@ private:
 
 public:
   explicit AttributeValue();
-  explicit AttributeValue(const util::MoveHolder<AttributeValue> &a) {
-    *this = a;
-  }
-  AttributeValue &operator=(const util::MoveHolder<AttributeValue> &);
+  explicit AttributeValue(AttributeValue &&a) = default;
+  explicit AttributeValue(const AttributeValue &a) = default;
+  AttributeValue &operator=(AttributeValue &&);
 
   Category category() const { return mCategory; }
 
@@ -834,9 +816,9 @@ public:
   explicit Attribute(const std::string &, const AttributeValue &,
                      util::UtcTime);
 
-  explicit Attribute(const util::MoveHolder<Attribute> &a) { *this = a; }
+  explicit Attribute(Attribute &&a) = default;
 
-  Attribute &operator=(const util::MoveHolder<Attribute> &);
+  Attribute &operator=(Attribute &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -866,9 +848,10 @@ private:
 class Row {
 public:
   explicit Row() {}
-  explicit Row(const util::MoveHolder<Row> &a) { *this = a; }
+  explicit Row(Row &&a);
+  explicit Row(const Row &a);
 
-  Row &operator=(const util::MoveHolder<Row> &);
+  Row &operator=(Row &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -901,9 +884,10 @@ public:
   explicit TimeRange(util::UtcTime start, util::UtcTime end)
       : mStart(start), mEnd(end) {}
 
-  explicit TimeRange(const util::MoveHolder<TimeRange> &a) { *this = a; }
+  explicit TimeRange(TimeRange &&a) = default;
+  explicit TimeRange(const TimeRange &a) = default;
 
-  TimeRange &operator=(const util::MoveHolder<TimeRange> &a);
+  TimeRange &operator=(TimeRange &&a);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -926,9 +910,9 @@ class Split {
 public:
   explicit Split() {}
 
-  explicit Split(const util::MoveHolder<Split> &a) { *this = a; }
+  explicit Split(Split &&a) = default;
 
-  Split &operator=(const util::MoveHolder<Split> &);
+  Split &operator=(Split &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1003,13 +987,9 @@ public:
       : mColumnName(columnName), mRelation(rel), mColumnValue(columnValue),
         mPassIfMissing(false), mLatestVersionOnly(true) {}
 
-  explicit SingleColumnCondition(
-      const util::MoveHolder<SingleColumnCondition> &a) {
-    *this = a;
-  }
+  explicit SingleColumnCondition(SingleColumnCondition &&a) = default;
 
-  SingleColumnCondition &
-  operator=(const util::MoveHolder<SingleColumnCondition> &);
+  SingleColumnCondition &operator=(SingleColumnCondition &&) = default;
   bool operator==(const SingleColumnCondition &) const;
 
   ColumnCondition::Type type() const { return ColumnCondition::kSingle; }
@@ -1057,13 +1037,9 @@ public:
 public:
   explicit CompositeColumnCondition() : mOperator(kAnd) {}
 
-  explicit CompositeColumnCondition(
-      const util::MoveHolder<CompositeColumnCondition> &a) {
-    *this = a;
-  }
+  explicit CompositeColumnCondition(CompositeColumnCondition &&a) = default;
 
-  CompositeColumnCondition &
-  operator=(const util::MoveHolder<CompositeColumnCondition> &);
+  CompositeColumnCondition &operator=(CompositeColumnCondition &&) = default;
   bool operator==(const CompositeColumnCondition &) const;
 
   Type type() const { return kComposite; }
@@ -1100,9 +1076,10 @@ public:
 public:
   explicit Condition() : mRowCondition(kIgnore) {}
 
-  explicit Condition(const util::MoveHolder<Condition> &a) { *this = a; }
+  explicit Condition(const Condition &a) = default;
+  explicit Condition(Condition &&a) = default;
 
-  Condition &operator=(const util::MoveHolder<Condition> &);
+  Condition &operator=(Condition &&);
   bool operator==(const Condition &) const;
   bool operator!=(const Condition &b) const { return !(*this == b); }
 
@@ -1138,8 +1115,10 @@ public:
 
 protected:
   explicit RowChange() : mReturnType(kRT_None) {}
+  explicit RowChange(const RowChange &) = default;
+  explicit RowChange(RowChange &&) = default;
+  RowChange &operator=(RowChange &&) = default;
 
-  void move(RowChange &a);
   virtual void prettyPrint(std::string &) const;
   bool operator==(const RowChange &) const;
 
@@ -1174,9 +1153,9 @@ private:
 class RowPutChange : public RowChange {
 public:
   explicit RowPutChange() {}
-  explicit RowPutChange(const util::MoveHolder<RowPutChange> &a) { *this = a; }
+  explicit RowPutChange(RowPutChange &&a) = default;
 
-  RowPutChange &operator=(const util::MoveHolder<RowPutChange> &);
+  RowPutChange &operator=(RowPutChange &&) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1213,9 +1192,9 @@ public:
   public:
     explicit Update() : mType(kPut) {}
 
-    explicit Update(const util::MoveHolder<Update> &a) { *this = a; }
+    explicit Update(Update &&a) = default;
 
-    Update &operator=(const util::MoveHolder<Update> &);
+    Update &operator=(Update &&) = default;
     void prettyPrint(std::string &) const;
     std::optional<OTSError> validate() const;
     bool operator==(const Update &) const;
@@ -1249,11 +1228,10 @@ public:
 public:
   explicit RowUpdateChange() {}
 
-  explicit RowUpdateChange(const util::MoveHolder<RowUpdateChange> &a) {
-    *this = a;
-  }
+  explicit RowUpdateChange(RowUpdateChange &&a) = default;
+  explicit RowUpdateChange(const RowUpdateChange &a) = default;
 
-  RowUpdateChange &operator=(const util::MoveHolder<RowUpdateChange> &);
+  RowUpdateChange &operator=(RowUpdateChange &&);
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1270,16 +1248,12 @@ private:
 
 class RowDeleteChange : public RowChange {
 public:
-  explicit RowDeleteChange() {}
+  explicit RowDeleteChange() = default;
 
-  explicit RowDeleteChange(const util::MoveHolder<RowDeleteChange> &a) {
-    *this = a;
-  }
+  explicit RowDeleteChange(const RowDeleteChange &a) = default;
+  explicit RowDeleteChange(RowDeleteChange &&a) = default;
 
-  RowDeleteChange &operator=(const util::MoveHolder<RowDeleteChange> &a) {
-    RowChange::move(*a);
-    return *this;
-  }
+  RowDeleteChange &operator=(RowDeleteChange &&a) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1297,16 +1271,9 @@ public:
 
   explicit PairWithUserData() : mUserData(NULL) {}
 
-  explicit PairWithUserData(const util::MoveHolder<PairWithUserData<T>> &a) {
-    *this = a;
-  }
+  explicit PairWithUserData(PairWithUserData<T> &&a) = default;
 
-  PairWithUserData<T> &
-  operator=(const util::MoveHolder<PairWithUserData<T>> &a) {
-    util::moveAssign(mData, util::move(a->mData));
-    mUserData = a->mUserData;
-    return *this;
-  }
+  PairWithUserData<T> &operator=(PairWithUserData<T> &&a) = default;
 
   void prettyPrint(std::string &out) const { pp::prettyPrint(out, get()); }
 
@@ -1327,8 +1294,10 @@ private:
 
 class QueryCriterion {
 protected:
-  explicit QueryCriterion() {}
-  QueryCriterion &operator=(const util::MoveHolder<QueryCriterion> &);
+  explicit QueryCriterion() = default;
+  explicit QueryCriterion(QueryCriterion &&) = default;
+  explicit QueryCriterion(const QueryCriterion &) = default;
+  QueryCriterion &operator=(QueryCriterion &&) = default;
 
 public:
   virtual ~QueryCriterion() {}
@@ -1373,11 +1342,9 @@ class PointQueryCriterion : public QueryCriterion {
 public:
   explicit PointQueryCriterion() {}
 
-  explicit PointQueryCriterion(const util::MoveHolder<PointQueryCriterion> &a) {
-    *this = a;
-  }
+  explicit PointQueryCriterion(PointQueryCriterion &&a) = default;
 
-  PointQueryCriterion &operator=(const util::MoveHolder<PointQueryCriterion> &);
+  PointQueryCriterion &operator=(PointQueryCriterion &&) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1398,11 +1365,9 @@ public:
 public:
   explicit RangeQueryCriterion() : mDirection(FORWARD) {}
 
-  explicit RangeQueryCriterion(const util::MoveHolder<RangeQueryCriterion> &a) {
-    *this = a;
-  }
+  explicit RangeQueryCriterion(RangeQueryCriterion &&a) = default;
 
-  RangeQueryCriterion &operator=(const util::MoveHolder<RangeQueryCriterion> &);
+  RangeQueryCriterion &operator=(RangeQueryCriterion &&) = default;
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1437,10 +1402,8 @@ public:
 public:
   explicit MultiPointQueryCriterion() {}
 
-  explicit MultiPointQueryCriterion(
-      const util::MoveHolder<MultiPointQueryCriterion> &);
-  MultiPointQueryCriterion &
-  operator=(const util::MoveHolder<MultiPointQueryCriterion> &);
+  explicit MultiPointQueryCriterion(MultiPointQueryCriterion &&);
+  MultiPointQueryCriterion &operator=(MultiPointQueryCriterion &&);
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1457,7 +1420,10 @@ private:
 
 class Response {
 protected:
-  Response &operator=(const util::MoveHolder<Response> &);
+  Response() = default;
+  Response(const Response &) = default;
+  Response(Response &&) = default;
+  Response &operator=(Response &&) = default;
   void prettyPrint(std::string &) const;
   void reset();
 
@@ -1478,11 +1444,8 @@ private:
 class CreateTableRequest {
 public:
   explicit CreateTableRequest();
-  explicit CreateTableRequest(const util::MoveHolder<CreateTableRequest> &a) {
-    *this = a;
-  }
-
-  CreateTableRequest &operator=(const util::MoveHolder<CreateTableRequest> &);
+  explicit CreateTableRequest(CreateTableRequest &&) = default;
+  CreateTableRequest &operator=(CreateTableRequest &&) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1515,12 +1478,9 @@ private:
 class CreateTableResponse : public Response {
 public:
   explicit CreateTableResponse() {}
-  explicit CreateTableResponse(const util::MoveHolder<CreateTableResponse> &a) {
-    *this = a;
-  }
+  explicit CreateTableResponse(CreateTableResponse &&a) = default;
 
-  CreateTableResponse &
-  operator=(const util::MoveHolder<CreateTableResponse> &a);
+  CreateTableResponse &operator=(CreateTableResponse &&a) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1530,11 +1490,9 @@ public:
 class ListTableRequest {
 public:
   explicit ListTableRequest() {}
-  explicit ListTableRequest(const util::MoveHolder<ListTableRequest> &) {}
+  explicit ListTableRequest(ListTableRequest &&) = default;
 
-  ListTableRequest &operator=(const util::MoveHolder<ListTableRequest> &) {
-    return *this;
-  }
+  ListTableRequest &operator=(ListTableRequest &&) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1544,8 +1502,8 @@ public:
 class ListTableResponse : public Response {
 public:
   explicit ListTableResponse() {}
-  explicit ListTableResponse(const util::MoveHolder<ListTableResponse> &);
-  ListTableResponse &operator=(const util::MoveHolder<ListTableResponse> &);
+  explicit ListTableResponse(ListTableResponse &&);
+  ListTableResponse &operator=(ListTableResponse &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1562,9 +1520,9 @@ private:
 class DeleteTableRequest {
 public:
   explicit DeleteTableRequest() {}
-  explicit DeleteTableRequest(const util::MoveHolder<DeleteTableRequest> &);
+  explicit DeleteTableRequest(DeleteTableRequest &&);
 
-  DeleteTableRequest &operator=(const util::MoveHolder<DeleteTableRequest> &);
+  DeleteTableRequest &operator=(DeleteTableRequest &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1581,8 +1539,8 @@ private:
 class DeleteTableResponse : public Response {
 public:
   explicit DeleteTableResponse() {}
-  explicit DeleteTableResponse(const util::MoveHolder<DeleteTableResponse> &);
-  DeleteTableResponse &operator=(const util::MoveHolder<DeleteTableResponse> &);
+  explicit DeleteTableResponse(DeleteTableResponse &&);
+  DeleteTableResponse &operator=(DeleteTableResponse &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1592,9 +1550,8 @@ public:
 class DescribeTableRequest {
 public:
   explicit DescribeTableRequest() {}
-  explicit DescribeTableRequest(const util::MoveHolder<DescribeTableRequest> &);
-  DescribeTableRequest &
-  operator=(const util::MoveHolder<DescribeTableRequest> &);
+  explicit DescribeTableRequest(DescribeTableRequest &&);
+  DescribeTableRequest &operator=(DescribeTableRequest &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1611,10 +1568,8 @@ private:
 class DescribeTableResponse : public Response {
 public:
   explicit DescribeTableResponse() : mStatus(kTS_Active) {}
-  explicit DescribeTableResponse(
-      const util::MoveHolder<DescribeTableResponse> &);
-  DescribeTableResponse &
-  operator=(const util::MoveHolder<DescribeTableResponse> &);
+  explicit DescribeTableResponse(DescribeTableResponse &&);
+  DescribeTableResponse &operator=(DescribeTableResponse &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1648,8 +1603,8 @@ private:
 class UpdateTableRequest {
 public:
   explicit UpdateTableRequest() {}
-  explicit UpdateTableRequest(const util::MoveHolder<UpdateTableRequest> &);
-  UpdateTableRequest &operator=(const util::MoveHolder<UpdateTableRequest> &);
+  explicit UpdateTableRequest(UpdateTableRequest &&);
+  UpdateTableRequest &operator=(UpdateTableRequest &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1671,8 +1626,8 @@ private:
 class UpdateTableResponse : public Response {
 public:
   explicit UpdateTableResponse() {}
-  explicit UpdateTableResponse(const util::MoveHolder<UpdateTableResponse> &);
-  UpdateTableResponse &operator=(const util::MoveHolder<UpdateTableResponse> &);
+  explicit UpdateTableResponse(UpdateTableResponse &&);
+  UpdateTableResponse &operator=(UpdateTableResponse &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1685,10 +1640,8 @@ class ComputeSplitsBySizeRequest {
 public:
   explicit ComputeSplitsBySizeRequest() : mSplitSize(kDefaultSplitSize) {}
 
-  explicit ComputeSplitsBySizeRequest(
-      const util::MoveHolder<ComputeSplitsBySizeRequest> &);
-  ComputeSplitsBySizeRequest &
-  operator=(const util::MoveHolder<ComputeSplitsBySizeRequest> &);
+  explicit ComputeSplitsBySizeRequest(ComputeSplitsBySizeRequest &&);
+  ComputeSplitsBySizeRequest &operator=(ComputeSplitsBySizeRequest &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1710,10 +1663,8 @@ private:
 class ComputeSplitsBySizeResponse : public Response {
 public:
   explicit ComputeSplitsBySizeResponse() {}
-  explicit ComputeSplitsBySizeResponse(
-      const util::MoveHolder<ComputeSplitsBySizeResponse> &);
-  ComputeSplitsBySizeResponse &
-  operator=(const util::MoveHolder<ComputeSplitsBySizeResponse> &);
+  explicit ComputeSplitsBySizeResponse(ComputeSplitsBySizeResponse &&);
+  ComputeSplitsBySizeResponse &operator=(ComputeSplitsBySizeResponse &&);
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1740,11 +1691,9 @@ private:
 class PutRowRequest {
 public:
   explicit PutRowRequest() {}
-  explicit PutRowRequest(const util::MoveHolder<PutRowRequest> &a) {
-    *this = a;
-  }
+  explicit PutRowRequest(PutRowRequest &&a) = default;
 
-  PutRowRequest &operator=(const util::MoveHolder<PutRowRequest> &);
+  PutRowRequest &operator=(PutRowRequest &&) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1761,11 +1710,9 @@ private:
 class PutRowResponse : public Response {
 public:
   explicit PutRowResponse() {}
-  explicit PutRowResponse(const util::MoveHolder<PutRowResponse> &a) {
-    *this = a;
-  }
+  explicit PutRowResponse(PutRowResponse &&a) = default;
 
-  PutRowResponse &operator=(const util::MoveHolder<PutRowResponse> &);
+  PutRowResponse &operator=(PutRowResponse &&) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1788,11 +1735,9 @@ class GetRowRequest {
 public:
   explicit GetRowRequest() {}
 
-  explicit GetRowRequest(const util::MoveHolder<GetRowRequest> &a) {
-    *this = a;
-  }
+  explicit GetRowRequest(GetRowRequest &&a) = default;
 
-  GetRowRequest &operator=(const util::MoveHolder<GetRowRequest> &);
+  GetRowRequest &operator=(GetRowRequest &&) = default;
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1807,13 +1752,11 @@ private:
 
 class GetRowResponse : public Response {
 public:
-  explicit GetRowResponse() {}
+  explicit GetRowResponse() = default;
 
-  explicit GetRowResponse(const util::MoveHolder<GetRowResponse> &a) {
-    *this = a;
-  }
+  explicit GetRowResponse(GetRowResponse &&a) = default;
 
-  GetRowResponse &operator=(const util::MoveHolder<GetRowResponse> &a);
+  GetRowResponse &operator=(GetRowResponse &&a) = default;
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1835,11 +1778,9 @@ class GetRangeRequest {
 public:
   explicit GetRangeRequest() {}
 
-  explicit GetRangeRequest(const util::MoveHolder<GetRangeRequest> &a) {
-    *this = a;
-  }
+  explicit GetRangeRequest(GetRangeRequest &&a) = default;
 
-  GetRangeRequest &operator=(const util::MoveHolder<GetRangeRequest> &);
+  GetRangeRequest &operator=(GetRangeRequest &&) = default;
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1854,13 +1795,12 @@ private:
 
 class GetRangeResponse : public Response {
 public:
-  explicit GetRangeResponse() {}
+  explicit GetRangeResponse() = default;
 
-  explicit GetRangeResponse(const util::MoveHolder<GetRangeResponse> &a) {
-    *this = a;
-  }
+  explicit GetRangeResponse(GetRangeResponse &&a) = default;
+  explicit GetRangeResponse(const GetRangeResponse &a) = default;
 
-  GetRangeResponse &operator=(const util::MoveHolder<GetRangeResponse> &);
+  GetRangeResponse &operator=(GetRangeResponse &&);
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1887,11 +1827,10 @@ class UpdateRowRequest {
 public:
   explicit UpdateRowRequest() {}
 
-  explicit UpdateRowRequest(const util::MoveHolder<UpdateRowRequest> &a) {
-    *this = a;
-  }
+  explicit UpdateRowRequest(UpdateRowRequest &&a) = default;
+  explicit UpdateRowRequest(const UpdateRowRequest &a) = default;
 
-  UpdateRowRequest &operator=(const util::MoveHolder<UpdateRowRequest> &);
+  UpdateRowRequest &operator=(UpdateRowRequest &&);
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1908,11 +1847,10 @@ class UpdateRowResponse : public Response {
 public:
   explicit UpdateRowResponse() {}
 
-  explicit UpdateRowResponse(const util::MoveHolder<UpdateRowResponse> &a) {
-    *this = a;
-  }
+  explicit UpdateRowResponse(UpdateRowResponse &&a) = default;
+  explicit UpdateRowResponse(const UpdateRowResponse &a) = default;
 
-  UpdateRowResponse &operator=(const util::MoveHolder<UpdateRowResponse> &);
+  UpdateRowResponse &operator=(UpdateRowResponse &&) = default;
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1932,13 +1870,12 @@ private:
 
 class DeleteRowRequest {
 public:
-  explicit DeleteRowRequest() {}
+  explicit DeleteRowRequest() = default;
 
-  explicit DeleteRowRequest(const util::MoveHolder<DeleteRowRequest> &a) {
-    *this = a;
-  }
+  explicit DeleteRowRequest(DeleteRowRequest &&a) = default;
+  explicit DeleteRowRequest(const DeleteRowRequest &a) = default;
 
-  DeleteRowRequest &operator=(const util::MoveHolder<DeleteRowRequest> &a);
+  DeleteRowRequest &operator=(DeleteRowRequest &&a);
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1953,13 +1890,12 @@ private:
 
 class DeleteRowResponse : public Response {
 public:
-  explicit DeleteRowResponse() {}
+  explicit DeleteRowResponse() = default;
 
-  explicit DeleteRowResponse(const util::MoveHolder<DeleteRowResponse> &a) {
-    *this = a;
-  }
+  explicit DeleteRowResponse(DeleteRowResponse &&a) = default;
+  explicit DeleteRowResponse(const DeleteRowResponse &a) = default;
 
-  DeleteRowResponse &operator=(const util::MoveHolder<DeleteRowResponse> &);
+  DeleteRowResponse &operator=(DeleteRowResponse &&) = default;
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1980,8 +1916,8 @@ private:
 class BatchGetRowRequest {
 public:
   explicit BatchGetRowRequest() {}
-  explicit BatchGetRowRequest(const util::MoveHolder<BatchGetRowRequest> &);
-  BatchGetRowRequest &operator=(const util::MoveHolder<BatchGetRowRequest> &);
+  explicit BatchGetRowRequest(BatchGetRowRequest &&);
+  BatchGetRowRequest &operator=(BatchGetRowRequest &&);
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -2002,11 +1938,10 @@ public:
 
 public:
   explicit BatchGetRowResponse() {}
-  explicit BatchGetRowResponse(const util::MoveHolder<BatchGetRowResponse> &a) {
-    *this = a;
-  }
+  explicit BatchGetRowResponse(BatchGetRowResponse &&a) = default;
+  explicit BatchGetRowResponse(const BatchGetRowResponse &a) = default;
 
-  BatchGetRowResponse &operator=(const util::MoveHolder<BatchGetRowResponse> &);
+  BatchGetRowResponse &operator=(BatchGetRowResponse &&);
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -2032,9 +1967,8 @@ public:
 
 public:
   explicit BatchWriteRowRequest() {}
-  explicit BatchWriteRowRequest(const util::MoveHolder<BatchWriteRowRequest> &);
-  BatchWriteRowRequest &
-  operator=(const util::MoveHolder<BatchWriteRowRequest> &);
+  explicit BatchWriteRowRequest(BatchWriteRowRequest &&);
+  BatchWriteRowRequest &operator=(BatchWriteRowRequest &&);
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -2063,10 +1997,8 @@ public:
 
 public:
   explicit BatchWriteRowResponse() {}
-  explicit BatchWriteRowResponse(
-      const util::MoveHolder<BatchWriteRowResponse> &);
-  BatchWriteRowResponse &
-  operator=(const util::MoveHolder<BatchWriteRowResponse> &);
+  explicit BatchWriteRowResponse(BatchWriteRowResponse &&);
+  BatchWriteRowResponse &operator=(BatchWriteRowResponse &&);
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();

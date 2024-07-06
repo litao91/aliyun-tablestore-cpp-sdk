@@ -30,7 +30,6 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "zero_copy_stream.hpp"
-#include "tablestore/util/move.hpp"
 #include "tablestore/util/assert.hpp"
 
 using namespace std;
@@ -43,7 +42,7 @@ namespace core {
 MemPoolZeroCopyInputStream::MemPoolZeroCopyInputStream(deque<MemPiece>& a)
   : mReadBytes(0)
 {
-    moveAssign(mPieces, util::move(a));
+    mPieces = std::move(a);
 }
 
 bool MemPoolZeroCopyInputStream::Next(const void** data, int* size)
@@ -52,13 +51,13 @@ bool MemPoolZeroCopyInputStream::Next(const void** data, int* size)
         return false;
     }
     if (mBackupPiece) {
-        MemPiece x = *mBackupPiece;
+        MemPiece x(std::move(*mBackupPiece));
         mBackupPiece = std::optional<MemPiece>();
         *data = x.data();
         *size = x.length();
         mReadBytes += x.length();
     } else {
-        mLastPiece = mPieces.front();
+        mLastPiece = std::move(mPieces.front());
         mPieces.pop_front();
         *data = mLastPiece.data();
         *size = mLastPiece.length();
@@ -145,9 +144,9 @@ int64_t MemPoolZeroCopyOutputStream::ByteCount() const
     return mByteCount;
 }
 
-MoveHolder<deque<MemPiece> > MemPoolZeroCopyOutputStream::pieces()
+deque<MemPiece> MemPoolZeroCopyOutputStream::pieces()
 {
-    return util::move(mPieces);
+    return std::move(mPieces);
 }
 
 

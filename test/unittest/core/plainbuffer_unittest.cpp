@@ -553,7 +553,7 @@ T shrinkTrampoline(
         if (shrinked == original) {
             return shrinked;
         }
-        moveAssign(original, util::move(shrinked));
+        moveAssign(original, std::move(shrinked));
     }
     OTS_ASSERT(false);
     return in;

@@ -32,10 +32,9 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include "tablestore/util/move.hpp"
 #include "tablestore/util/assert.hpp"
-#include <string>
 #include <stdint.h>
+#include <string>
 
 namespace aliyun {
 namespace tablestore {
@@ -51,193 +50,134 @@ class Duration;
 class MonotonicTime;
 class UtcTime;
 
-void sleepFor(const Duration&);
-void sleepUnitl(const MonotonicTime&);
+void sleepFor(const Duration &);
+void sleepUnitl(const MonotonicTime &);
 
-class ComparableTime
-{
+class ComparableTime {
 protected:
-    explicit ComparableTime(int64_t v) throw()
-      : mValue(v)
-    {}
+  explicit ComparableTime(int64_t v) noexcept : mValue(v) {}
 
 public:
-    bool operator==(const ComparableTime& ano) const throw()
-    {
-        return mValue == ano.mValue;
-    }
-    bool operator!=(const ComparableTime& ano) const throw()
-    {
-        return mValue != ano.mValue;
-    }
+  bool operator==(const ComparableTime &ano) const noexcept {
+    return mValue == ano.mValue;
+  }
+  bool operator!=(const ComparableTime &ano) const noexcept {
+    return mValue != ano.mValue;
+  }
 
-    bool operator<(const ComparableTime& ano) const throw()
-    {
-        return mValue < ano.mValue;
-    }
-    bool operator>(const ComparableTime& ano) const throw()
-    {
-        return mValue > ano.mValue;
-    }
+  bool operator<(const ComparableTime &ano) const noexcept {
+    return mValue < ano.mValue;
+  }
+  bool operator>(const ComparableTime &ano) const noexcept {
+    return mValue > ano.mValue;
+  }
 
-    bool operator<=(const ComparableTime& ano) const throw()
-    {
-        return mValue <= ano.mValue;
-    }
-    bool operator>=(const ComparableTime& ano) const throw()
-    {
-        return mValue >= ano.mValue;
-    }
+  bool operator<=(const ComparableTime &ano) const noexcept {
+    return mValue <= ano.mValue;
+  }
+  bool operator>=(const ComparableTime &ano) const noexcept {
+    return mValue >= ano.mValue;
+  }
 
 protected:
-    int64_t mValue;
+  int64_t mValue;
 };
 
-
-class Duration : public ComparableTime
-{
+class Duration : public ComparableTime {
 private:
-    explicit Duration(int64_t usec) throw()
-      : ComparableTime(usec)
-    {}
+  explicit Duration(int64_t usec) noexcept : ComparableTime(usec) {}
 
 public:
-    explicit Duration() throw()
-      : ComparableTime(0)
-    {}
-    explicit Duration(const MoveHolder<Duration>& ano) throw()
-      : ComparableTime(ano->mValue)
-    {}
+  explicit Duration() noexcept : ComparableTime(0) {}
+  explicit Duration(Duration &&ano) noexcept
+      : ComparableTime(std::move(ano.mValue)) {}
+  Duration(const Duration &ano) : ComparableTime(ano.mValue) {}
 
-    Duration& operator=(const MoveHolder<Duration>& ano) throw()
-    {
-        mValue = ano->mValue;
-        return *this;
-    }
+  Duration &operator=(Duration &&ano) noexcept {
+    mValue = ano.mValue;
+    return *this;
+  }
 
-    /*
-     * templating, in order to support both integer and double/float.
-     */
-    template<typename T>
-    static Duration fromUsec(T x) throw()
-    {
-        return Duration(static_cast<int64_t>(x));
-    }
+  /*
+   * templating, in order to support both integer and double/float.
+   */
+  template <typename T> static Duration fromUsec(T x) noexcept {
+    return Duration(static_cast<int64_t>(x));
+  }
 
-    template<typename T>
-    static Duration fromMsec(T x) throw()
-    {
-        return Duration(static_cast<int64_t>(x * kUsecPerMsec));
-    }
+  template <typename T> static Duration fromMsec(T x) noexcept {
+    return Duration(static_cast<int64_t>(x * kUsecPerMsec));
+  }
 
-    template<typename T>
-    static Duration fromSec(T x) throw()
-    {
-        return Duration(static_cast<int64_t>(x * kUsecPerSec));
-    }
+  template <typename T> static Duration fromSec(T x) noexcept {
+    return Duration(static_cast<int64_t>(x * kUsecPerSec));
+  }
 
-    template<typename T>
-    static Duration fromMin(T x) throw()
-    {
-        return Duration(static_cast<int64_t>(x * kUsecPerSec * 60));
-    }
+  template <typename T> static Duration fromMin(T x) noexcept {
+    return Duration(static_cast<int64_t>(x * kUsecPerSec * 60));
+  }
 
-    template<typename T>
-    static Duration fromHour(T x) throw()
-    {
-        return Duration(static_cast<int64_t>(x * kUsecPerSec * 60 * 60));
-    }
+  template <typename T> static Duration fromHour(T x) noexcept {
+    return Duration(static_cast<int64_t>(x * kUsecPerSec * 60 * 60));
+  }
 
-    Duration operator-() const throw()
-    {
-        return Duration(-mValue);
-    }
+  Duration operator-() const noexcept { return Duration(-mValue); }
 
-    Duration& operator+=(const Duration& ano) throw()
-    {
-        int64_t newValue = mValue + ano.mValue;
-        OTS_ASSERT((ano.mValue >= 0) == (newValue >= mValue))
-            (mValue)
-            (ano.mValue)
-            .what("Duration overflow!");
-        mValue = newValue;
-        return *this;
-    }
+  Duration &operator+=(const Duration &ano) noexcept {
+    int64_t newValue = mValue + ano.mValue;
+    OTS_ASSERT((ano.mValue >= 0) == (newValue >= mValue))
+    (mValue)(ano.mValue).what("Duration overflow!");
+    mValue = newValue;
+    return *this;
+  }
 
-    Duration& operator-=(const Duration& ano) throw()
-    {
-        int64_t newValue = mValue - ano.mValue;
-        OTS_ASSERT((newValue >= 0) == (mValue >= ano.mValue))
-            (mValue)
-            (ano.mValue)
-            .what("Duration underflow!");
-        mValue = newValue;
-        return *this;
-    }
+  Duration &operator-=(const Duration &ano) noexcept {
+    int64_t newValue = mValue - ano.mValue;
+    OTS_ASSERT((newValue >= 0) == (mValue >= ano.mValue))
+    (mValue)(ano.mValue).what("Duration underflow!");
+    mValue = newValue;
+    return *this;
+  }
 
-    template<class T>
-    Duration& operator*=(T multiple) throw()
-    {
-        mValue = static_cast<int64_t>(mValue * multiple);
-        return *this;
-    }
+  template <class T> Duration &operator*=(T multiple) noexcept {
+    mValue = static_cast<int64_t>(mValue * multiple);
+    return *this;
+  }
 
-    int64_t toUsec() const throw()
-    {
-        return mValue;
-    }
+  int64_t toUsec() const noexcept { return mValue; }
 
-    int64_t toMsec() const throw()
-    {
-        return mValue / kUsecPerMsec;
-    }
+  int64_t toMsec() const noexcept { return mValue / kUsecPerMsec; }
 
-    int64_t toSec() const throw()
-    {
-        return mValue / kUsecPerSec;
-    }
+  int64_t toSec() const noexcept { return mValue / kUsecPerSec; }
 
-    int64_t toMin() const throw()
-    {
-        return mValue / kUsecPerMin;
-    }
+  int64_t toMin() const noexcept { return mValue / kUsecPerMin; }
 
-    int64_t toHour() const throw()
-    {
-        return mValue / kUsecPerHour;
-    }
+  int64_t toHour() const noexcept { return mValue / kUsecPerHour; }
 
-    void prettyPrint(std::string&) const;
+  void prettyPrint(std::string &) const;
 };
 
-inline Duration operator+(Duration a, Duration b)
-{
-    Duration result(a);
-    result += b;
-    return result;
+inline Duration operator+(Duration a, Duration b) {
+  Duration result(a);
+  result += b;
+  return result;
 }
 
-inline Duration operator-(Duration a, Duration b)
-{
-    Duration result(a);
-    result -= b;
-    return result;
+inline Duration operator-(Duration a, Duration b) {
+  Duration result(a);
+  result -= b;
+  return result;
 }
 
-template<class T>
-Duration operator*(Duration a, T multiple)
-{
-    Duration result(a);
-    result *= multiple;
-    return result;
+template <class T> Duration operator*(Duration a, T multiple) {
+  Duration result(a);
+  result *= multiple;
+  return result;
 }
 
-template<class T>
-Duration operator*(T multiple, Duration a)
-{
-    return a * multiple;
+template <class T> Duration operator*(T multiple, Duration a) {
+  return a * multiple;
 }
-
 
 /**
  * Monotonic time is, as its name shown, monotonic.
@@ -247,69 +187,52 @@ Duration operator*(T multiple, Duration a)
  * will be affacted by adjtime(3) and NTP.
  * Besides, its start point is undefined.
  */
-class MonotonicTime : public ComparableTime
-{
+class MonotonicTime : public ComparableTime {
 public:
-    explicit MonotonicTime(int64_t usec) throw()
-      : ComparableTime(usec)
-    {}
-    explicit MonotonicTime() throw()
-      : ComparableTime(0)
-    {}
-    explicit MonotonicTime(const MoveHolder<MonotonicTime>& ano) throw()
-      : ComparableTime(ano->mValue)
-    {}
+  explicit MonotonicTime(int64_t usec) noexcept : ComparableTime(usec) {}
+  explicit MonotonicTime() noexcept : ComparableTime(0) {}
+  MonotonicTime(MonotonicTime const &ano) noexcept
+      : ComparableTime(ano.mValue) {}
 
-    MonotonicTime& operator=(const MoveHolder<MonotonicTime>& ano) throw()
-    {
-        mValue = ano->mValue;
-        return *this;
-    }
+  MonotonicTime &operator=(MonotonicTime &ano) noexcept {
+    mValue = ano.mValue;
+    return *this;
+  }
 
-    static MonotonicTime now();
+  static MonotonicTime now();
 
-    Duration operator-(const MonotonicTime& ano) const throw()
-    {
-        int64_t result = mValue - ano.mValue;
-        OTS_ASSERT((result >= 0) == (mValue >= ano.mValue))
-            (mValue)(ano.mValue)
-            .what("MonotonicTime underflow");
-        return Duration::fromUsec(result);
-    }
+  Duration operator-(const MonotonicTime &ano) const noexcept {
+    int64_t result = mValue - ano.mValue;
+    OTS_ASSERT((result >= 0) == (mValue >= ano.mValue))
+    (mValue)(ano.mValue).what("MonotonicTime underflow");
+    return Duration::fromUsec(result);
+  }
 
-    MonotonicTime& operator+=(const Duration& inc) throw()
-    {
-        int64_t newValue = mValue + inc.toUsec();
-        OTS_ASSERT((inc.toUsec() >= 0) == (newValue >= mValue))
-            (mValue)(inc.toUsec())
-            .what("MonotonicTime overflow");
-        mValue = newValue;
-        return *this;
-    }
+  MonotonicTime &operator+=(const Duration &inc) noexcept {
+    int64_t newValue = mValue + inc.toUsec();
+    OTS_ASSERT((inc.toUsec() >= 0) == (newValue >= mValue))
+    (mValue)(inc.toUsec()).what("MonotonicTime overflow");
+    mValue = newValue;
+    return *this;
+  }
 
-    void prettyPrint(std::string&) const;
+  void prettyPrint(std::string &) const;
 
 private:
-    int64_t toUsec() const throw()
-    {
-        return mValue;
-    }
+  int64_t toUsec() const noexcept { return mValue; }
 
-    friend void sleepUntil(const MonotonicTime&);
+  friend void sleepUntil(const MonotonicTime &);
 };
 
-inline MonotonicTime operator+(MonotonicTime base, Duration delta) throw()
-{
-    MonotonicTime result(base);
-    result += delta;
-    return result;
+inline MonotonicTime operator+(MonotonicTime base, Duration delta) noexcept {
+  MonotonicTime result(base);
+  result += delta;
+  return result;
 }
 
-inline MonotonicTime operator+(Duration delta, MonotonicTime base) throw()
-{
-    return base + delta;
+inline MonotonicTime operator+(Duration delta, MonotonicTime base) noexcept {
+  return base + delta;
 }
-
 
 /**
  * This is the wall time.
@@ -329,115 +252,86 @@ inline MonotonicTime operator+(Duration delta, MonotonicTime base) throw()
  * when it is 2008-12-31T23:59:60Z. So, discontinuous jump in NTP is not an
  * irrevocable flaw. It is a feature.
  */
-class UtcTime : public ComparableTime
-{
-    explicit UtcTime(int64_t usec) throw()
-      : ComparableTime(usec)
-    {}
+class UtcTime : public ComparableTime {
+  explicit UtcTime(int64_t usec) noexcept : ComparableTime(usec) {}
+
 public:
-    explicit UtcTime() throw()
-      : ComparableTime(0)
-    {}
-    explicit UtcTime(const MoveHolder<UtcTime>& ano) throw()
-      : ComparableTime(ano->mValue)
-    {}
+  explicit UtcTime() noexcept : ComparableTime(0) {}
+  UtcTime(const UtcTime &ano) noexcept : ComparableTime(ano.mValue) {}
 
-    UtcTime& operator=(const MoveHolder<UtcTime>& a)
-    {
-        mValue = a->mValue;
-        return *this;
-    }
+  UtcTime &operator=(const UtcTime &a) {
+    mValue = a.mValue;
+    return *this;
+  }
 
-    static UtcTime fromUsec(int64_t usec) throw()
-    {
-        return UtcTime(usec);
-    }
-    static UtcTime fromMsec(int64_t msec) throw()
-    {
-        return UtcTime(msec * kUsecPerMsec);
-    }
-    static UtcTime fromSec(int64_t sec) throw()
-    {
-        return UtcTime(sec * kUsecPerSec);
-    }
-    static UtcTime fromMin(int64_t min) throw()
-    {
-        return UtcTime(min * kUsecPerMin);
-    }
-    static UtcTime fromHour(int64_t hour) throw()
-    {
-        return UtcTime(hour * kUsecPerHour);
-    }
+  static UtcTime fromUsec(int64_t usec) noexcept { return UtcTime(usec); }
+  static UtcTime fromMsec(int64_t msec) noexcept {
+    return UtcTime(msec * kUsecPerMsec);
+  }
+  static UtcTime fromSec(int64_t sec) noexcept {
+    return UtcTime(sec * kUsecPerSec);
+  }
+  static UtcTime fromMin(int64_t min) noexcept {
+    return UtcTime(min * kUsecPerMin);
+  }
+  static UtcTime fromHour(int64_t hour) noexcept {
+    return UtcTime(hour * kUsecPerHour);
+  }
 
-    static UtcTime now();
+  static UtcTime now();
 
-    Duration operator-(const UtcTime& ano) const throw()
-    {
-        int64_t result = mValue - ano.mValue;
-        OTS_ASSERT((result >= 0) == (mValue >= ano.mValue))
-            (mValue)(ano.mValue)
-            .what("UtcTime underflow");
-        return Duration::fromUsec(result);
-    }
+  Duration operator-(const UtcTime &ano) const noexcept {
+    int64_t result = mValue - ano.mValue;
+    OTS_ASSERT((result >= 0) == (mValue >= ano.mValue))
+    (mValue)(ano.mValue).what("UtcTime underflow");
+    return Duration::fromUsec(result);
+  }
 
-    UtcTime& operator+=(const Duration& delta) throw()
-    {
-        int64_t newValue = mValue + delta.toUsec();
-        OTS_ASSERT((delta.toUsec() >= 0) == (newValue >= mValue))
-            (mValue)(delta)
-            .what("UtcTime overflow");
-        mValue = newValue;
-        return *this;
-    }
+  UtcTime &operator+=(const Duration &delta) noexcept {
+    int64_t newValue = mValue + delta.toUsec();
+    OTS_ASSERT((delta.toUsec() >= 0) == (newValue >= mValue))
+    (mValue)(delta).what("UtcTime overflow");
+    mValue = newValue;
+    return *this;
+  }
 
-    int64_t toUsec() const throw()
-    {
-        return mValue;
-    }
+  int64_t toUsec() const noexcept { return mValue; }
 
-    int64_t toMsec() const throw()
-    {
-        return mValue / kUsecPerMsec;
-    }
+  int64_t toMsec() const noexcept { return mValue / kUsecPerMsec; }
 
-    int64_t toSec() const throw()
-    {
-        return mValue / kUsecPerSec;
-    }
+  int64_t toSec() const noexcept { return mValue / kUsecPerSec; }
 
-    /**
-     * The result confirms to ISO 8601.
-     * It slightly different with ToStream() for its timezone part is always 'Z'.
-     *
-     * Precisely speaking, it will be "year-month-dayThour:minute:second.usecZ",
-     * where year is of 4 digits,
-     * month is of 2 digits (starting with 01),
-     * day is of 2 digits (starting with 01),
-     * hour is of 2 digits (between 00 and 23, inclusive),
-     * minute is of 2 digits (between 00 and 59, inclusive),
-     * second is of 2 digits (between 00 and 59, inclusive),
-     * usec is of 6 digits (padding with 0).
-     * There is no whitespaces between all parts.
-     */
-    void toIso8601(std::string&) const;
-    std::string toIso8601() const;
+  /**
+   * The result confirms to ISO 8601.
+   * It slightly different with ToStream() for its timezone part is always 'Z'.
+   *
+   * Precisely speaking, it will be "year-month-dayThour:minute:second.usecZ",
+   * where year is of 4 digits,
+   * month is of 2 digits (starting with 01),
+   * day is of 2 digits (starting with 01),
+   * hour is of 2 digits (between 00 and 23, inclusive),
+   * minute is of 2 digits (between 00 and 59, inclusive),
+   * second is of 2 digits (between 00 and 59, inclusive),
+   * usec is of 6 digits (padding with 0).
+   * There is no whitespaces between all parts.
+   */
+  void toIso8601(std::string &) const;
+  std::string toIso8601() const;
 
-    void prettyPrint(std::string&) const;
+  void prettyPrint(std::string &) const;
 };
 
-inline UtcTime operator+(UtcTime base, Duration delta) throw()
-{
-    UtcTime result(base);
-    result += delta;
-    return result;
+inline UtcTime operator+(UtcTime base, Duration delta) noexcept {
+  UtcTime result(base);
+  result += delta;
+  return result;
 }
 
-inline UtcTime operator+(Duration delta, UtcTime base) throw()
-{
-    return base + delta;
+inline UtcTime operator+(Duration delta, UtcTime base) noexcept {
+  return base + delta;
 }
 
-} // namespace core
+} // namespace util
 } // namespace tablestore
 } // namespace aliyun
 #endif

@@ -200,7 +200,7 @@ StdErrSinkerImpl::StdErrSinkerImpl()
     mSinkerSem(0)
 {
     Thread t(bind(&StdErrSinkerImpl::sinker, this));
-    moveAssign(mSinkerThread, util::move(t));
+    moveAssign(mSinkerThread, std::move(t));
 }
 
 StdErrSinkerImpl::~StdErrSinkerImpl()

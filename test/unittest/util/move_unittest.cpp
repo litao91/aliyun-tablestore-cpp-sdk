@@ -106,7 +106,7 @@ void Move_Moveable(const string&)
     {
         A a("a", &log);
         A b("b", &log);
-        util::moveAssign(a, util::move(b));
+        util::moveAssign(a, std::move(b));
     }
     TESTA_ASSERT(log == "ctor:a,ctor:b,dtor:a,move assign:b,dtor:,dtor:b,")
         (log)
@@ -118,7 +118,7 @@ void Move_int(const string&)
 {
     int a = 10;
     int b = 0;
-    util::moveAssign(b, util::move(a));
+    util::moveAssign(b, std::move(a));
     TESTA_ASSERT(b == 10)
         (a)
         .issue();
@@ -130,7 +130,7 @@ void Move_deque(const string&)
     deque<int> a;
     a.push_back(1);
     deque<int> b;
-    util::moveAssign(b, util::move(a));
+    util::moveAssign(b, std::move(a));
     TESTA_ASSERT(pp::prettyPrint(a) == "[]" && pp::prettyPrint(b) == "[1]")
         (a)(b).issue();
 }
@@ -141,7 +141,7 @@ void Move_autoptr(const string&)
     string log;
     unique_ptr<A> a(new A("a", &log));
     unique_ptr<A> b(new A("b", &log));
-    util::moveAssign(a, util::move(b));
+    util::moveAssign(a, std::move(b));
     TESTA_ASSERT(log == "ctor:a,ctor:b,dtor:a,")
         (log).issue();
     TESTA_ASSERT(a->id() == "b")
@@ -154,7 +154,7 @@ void Move_sharedptr(const string&)
     string log;
     shared_ptr<A> a(new A("a", &log));
     shared_ptr<A> b(new A("b", &log));
-    util::moveAssign(a, util::move(b));
+    util::moveAssign(a, std::move(b));
     TESTA_ASSERT(log == "ctor:a,ctor:b,dtor:a,")
         (log).issue();
     TESTA_ASSERT(a->id() == "b")

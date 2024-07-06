@@ -75,137 +75,112 @@ namespace tablestore {
 namespace core {
 namespace impl {
 
-template<Action kAction>
-struct ApiTraits {};
+template <Action kAction> struct ApiTraits {};
 
-template<>
-struct ApiTraits<kApi_ListTable>
-{
-    typedef aliyun::tablestore::core::ListTableRequest ApiRequest;
-    typedef aliyun::tablestore::core::ListTableResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::ListTableRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::ListTableResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_ListTable> {
+  using ApiRequest = aliyun::tablestore::core::ListTableRequest;
+  using ApiResponse = aliyun::tablestore::core::ListTableResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::ListTableRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::ListTableResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_CreateTable>
-{
-    typedef aliyun::tablestore::core::CreateTableRequest ApiRequest;
-    typedef aliyun::tablestore::core::CreateTableResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::CreateTableRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::CreateTableResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_CreateTable> {
+  using ApiRequest = aliyun::tablestore::core::CreateTableRequest;
+  using ApiResponse = aliyun::tablestore::core::CreateTableResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::CreateTableRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::CreateTableResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_DeleteTable>
-{
-    typedef aliyun::tablestore::core::DeleteTableRequest ApiRequest;
-    typedef aliyun::tablestore::core::DeleteTableResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::DeleteTableRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::DeleteTableResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_DeleteTable> {
+  using ApiRequest = aliyun::tablestore::core::DeleteTableRequest;
+  using ApiResponse = aliyun::tablestore::core::DeleteTableResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::DeleteTableRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::DeleteTableResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_DescribeTable>
-{
-    typedef aliyun::tablestore::core::DescribeTableRequest ApiRequest;
-    typedef aliyun::tablestore::core::DescribeTableResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::DescribeTableRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::DescribeTableResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_DescribeTable> {
+  using ApiRequest = aliyun::tablestore::core::DescribeTableRequest;
+  using ApiResponse = aliyun::tablestore::core::DescribeTableResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::DescribeTableRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::DescribeTableResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_UpdateTable>
-{
-    typedef aliyun::tablestore::core::UpdateTableRequest ApiRequest;
-    typedef aliyun::tablestore::core::UpdateTableResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::UpdateTableRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::UpdateTableResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_UpdateTable> {
+  using ApiRequest = aliyun::tablestore::core::UpdateTableRequest;
+  using ApiResponse = aliyun::tablestore::core::UpdateTableResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::UpdateTableRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::UpdateTableResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_ComputeSplitsBySize>
-{
-    typedef aliyun::tablestore::core::ComputeSplitsBySizeRequest ApiRequest;
-    typedef aliyun::tablestore::core::ComputeSplitsBySizeResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::ComputeSplitPointsBySizeRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::ComputeSplitPointsBySizeResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_ComputeSplitsBySize> {
+  using ApiRequest = aliyun::tablestore::core::ComputeSplitsBySizeRequest;
+  using ApiResponse = aliyun::tablestore::core::ComputeSplitsBySizeResponse;
+  using PbRequest =
+      com::aliyun::tablestore::protocol::ComputeSplitPointsBySizeRequest;
+  using PbResponse =
+      com::aliyun::tablestore::protocol::ComputeSplitPointsBySizeResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_PutRow>
-{
-    typedef aliyun::tablestore::core::PutRowRequest ApiRequest;
-    typedef aliyun::tablestore::core::PutRowResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::PutRowRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::PutRowResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_PutRow> {
+  using ApiRequest = aliyun::tablestore::core::PutRowRequest;
+  using ApiResponse = aliyun::tablestore::core::PutRowResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::PutRowRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::PutRowResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_GetRow>
-{
-    typedef aliyun::tablestore::core::GetRowRequest ApiRequest;
-    typedef aliyun::tablestore::core::GetRowResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::GetRowRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::GetRowResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_GetRow> {
+  using ApiRequest = aliyun::tablestore::core::GetRowRequest;
+  using ApiResponse = aliyun::tablestore::core::GetRowResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::GetRowRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::GetRowResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_GetRange>
-{
-    typedef aliyun::tablestore::core::GetRangeRequest ApiRequest;
-    typedef aliyun::tablestore::core::GetRangeResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::GetRangeRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::GetRangeResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_GetRange> {
+  using ApiRequest = aliyun::tablestore::core::GetRangeRequest;
+  using ApiResponse = aliyun::tablestore::core::GetRangeResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::GetRangeRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::GetRangeResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_UpdateRow>
-{
-    typedef aliyun::tablestore::core::UpdateRowRequest ApiRequest;
-    typedef aliyun::tablestore::core::UpdateRowResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::UpdateRowRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::UpdateRowResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_UpdateRow> {
+  using ApiRequest = aliyun::tablestore::core::UpdateRowRequest;
+  using ApiResponse = aliyun::tablestore::core::UpdateRowResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::UpdateRowRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::UpdateRowResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_DeleteRow>
-{
-    typedef aliyun::tablestore::core::DeleteRowRequest ApiRequest;
-    typedef aliyun::tablestore::core::DeleteRowResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::DeleteRowRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::DeleteRowResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_DeleteRow> {
+  using ApiRequest = aliyun::tablestore::core::DeleteRowRequest;
+  using ApiResponse = aliyun::tablestore::core::DeleteRowResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::DeleteRowRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::DeleteRowResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_BatchGetRow>
-{
-    typedef aliyun::tablestore::core::BatchGetRowRequest ApiRequest;
-    typedef aliyun::tablestore::core::BatchGetRowResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::BatchGetRowRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::BatchGetRowResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_BatchGetRow> {
+  using ApiRequest = aliyun::tablestore::core::BatchGetRowRequest;
+  using ApiResponse = aliyun::tablestore::core::BatchGetRowResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::BatchGetRowRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::BatchGetRowResponse;
+  static const std::string kPath;
 };
 
-template<>
-struct ApiTraits<kApi_BatchWriteRow>
-{
-    typedef aliyun::tablestore::core::BatchWriteRowRequest ApiRequest;
-    typedef aliyun::tablestore::core::BatchWriteRowResponse ApiResponse;
-    typedef com::aliyun::tablestore::protocol::BatchWriteRowRequest PbRequest;
-    typedef com::aliyun::tablestore::protocol::BatchWriteRowResponse PbResponse;
-    static const std::string kPath;
+template <> struct ApiTraits<kApi_BatchWriteRow> {
+  using ApiRequest = aliyun::tablestore::core::BatchWriteRowRequest;
+  using ApiResponse = aliyun::tablestore::core::BatchWriteRowResponse;
+  using PbRequest = com::aliyun::tablestore::protocol::BatchWriteRowRequest;
+  using PbResponse = com::aliyun::tablestore::protocol::BatchWriteRowResponse;
+  static const std::string kPath;
 };
 
 } // namespace impl

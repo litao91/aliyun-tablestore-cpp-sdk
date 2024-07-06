@@ -165,12 +165,12 @@ public:
             }
             mType = a->mType;
             a->mType = kInvalid;
-            util::moveAssign(mRowPutChange, util::move(a->mRowPutChange));
-            util::moveAssign(mPutRowCallback, util::move(a->mPutRowCallback));
-            util::moveAssign(mRowUpdateChange, util::move(a->mRowUpdateChange));
-            util::moveAssign(mUpdateRowCallback, util::move(a->mUpdateRowCallback));
-            util::moveAssign(mRowDeleteChange, util::move(a->mRowDeleteChange));
-            util::moveAssign(mDeleteRowCallback, util::move(a->mDeleteRowCallback));
+            util::moveAssign(mRowPutChange, std::move(a->mRowPutChange));
+            util::moveAssign(mPutRowCallback, std::move(a->mPutRowCallback));
+            util::moveAssign(mRowUpdateChange, std::move(a->mRowUpdateChange));
+            util::moveAssign(mUpdateRowCallback, std::move(a->mUpdateRowCallback));
+            util::moveAssign(mRowDeleteChange, std::move(a->mRowDeleteChange));
+            util::moveAssign(mDeleteRowCallback, std::move(a->mDeleteRowCallback));
             return *this;
         }
     };

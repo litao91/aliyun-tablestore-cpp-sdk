@@ -214,8 +214,8 @@ public:
             .what("HttpMock: issue an request");
         mIssueContext.mDeadline = deadline;
         mIssueContext.mPath = path;
-        moveAssign(mIssueContext.mAddHeaders, util::move(additionalHeaders));
-        moveAssign(mIssueContext.mBody, util::move(body));
+        moveAssign(mIssueContext.mAddHeaders, std::move(additionalHeaders));
+        moveAssign(mIssueContext.mBody, std::move(body));
         mIssueContext.mCallback = respCb;
         mSlave.ask(kIssue);
     }
@@ -254,7 +254,7 @@ public:
         if (err.httpStatus() < 200 || err.httpStatus() >= 300) {
             mError.emplace(std::move(err));
         }
-        moveAssign(mHeaders, util::move(headers));
+        moveAssign(mHeaders, std::move(headers));
         cb = http::ResponseCallback();
     }
 
@@ -269,7 +269,7 @@ public:
         mPbError(pbErr)
     {
         mError.emplace(std::move(err));
-        moveAssign(mHeaders, util::move(headers));
+        moveAssign(mHeaders, std::move(headers));
         cb = http::ResponseCallback();
     }
 
@@ -282,7 +282,7 @@ public:
         mTracker(tracker),
         mResponse(body)
     {
-        moveAssign(mHeaders, util::move(headers));
+        moveAssign(mHeaders, std::move(headers));
         cb = http::ResponseCallback();
     }
 
@@ -336,11 +336,11 @@ public:
         if (err) {
             OTS_LOG_DEBUG(mLogger)
                 ("Error", *err);
-            moveAssign(mError, util::move(err));
+            moveAssign(mError, std::move(err));
         } else {
             OTS_LOG_DEBUG(mLogger)
                 ("Response", resp);
-            moveAssign(mResponse, util::move(resp));
+            moveAssign(mResponse, std::move(resp));
         }
         mSlave.ask(kResult);
     }

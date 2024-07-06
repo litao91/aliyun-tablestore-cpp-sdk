@@ -345,7 +345,7 @@ void ConnectionImpl<kProto>::responseCompletionCondition(
       ctx->mLastResponseBuffer = ctx->mLastResponseBuffer.subpiece(
           ctx->mLastResponseBuffer.begin() + size);
     } else {
-      ctx->mLastResponseBuffer = mp;
+      ctx->mLastResponseBuffer = std::move(mp);
     }
     OTS_LOG_DEBUG(mLogger)
     ("Request", ctx->mTracker)("Connection", tracker())(
@@ -602,7 +602,7 @@ Scheduler::~Scheduler() {}
 
 void Scheduler::start() {
   Thread t(bind(&Scheduler::loop, this));
-  moveAssign(mThread, util::move(t));
+  mThread = std::move(t);
 }
 
 void Scheduler::close() {
@@ -647,7 +647,7 @@ void Scheduler::giveBack(ConnectionBase *conn) {
 }
 
 void Scheduler::destroy(ConnectionBase *conn) {
-  Tracker tracker = conn->tracker();
+  Tracker tracker(conn->tracker());
   OTS_LOG_DEBUG(mLogger)
   ("Connection", tracker).what("CONN: destroy a connection");
   unique_ptr<ConnectionBase> p(conn);
@@ -695,7 +695,7 @@ void Scheduler::loop() {
     }
     scanWaitingList();
   }
-  OTS_LOG_DEBUG(mLogger).what("CONN: Scheduler::loop() is quiting.");
+  OTS_LOG_DEBUG(mLogger).what("CONN: Scheduler::loop() is quitting.");
 }
 
 void Scheduler::scanWaitingList() {
@@ -723,7 +723,7 @@ void Scheduler::scanWaitingList() {
       e.mutableMessage() = "Timeout while waiting for idle connections.";
       req->mActor.pushBack(
           bind(req->mCallback, boost::ref(*static_cast<ConnectionBase *>(NULL)),
-               std::optional<OTSError>(util::move(e))));
+               std::optional<OTSError>(std::move(e))));
       continue;
     }
 

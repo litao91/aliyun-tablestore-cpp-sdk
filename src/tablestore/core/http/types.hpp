@@ -37,55 +37,50 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tablestore/util/mempiece.hpp"
 #include "tablestore/util/timestamp.hpp"
 
-#include "tablestore/util/move.hpp"
-#include "tablestore/util/mempool.hpp"
 #include "tablestore/util/logger.hpp"
+#include "tablestore/util/mempool.hpp"
 #include "tablestore/util/threading.hpp"
 #include <functional>
-#include <memory>
 #include <map>
-#include <string>
+#include <memory>
 #include <stdint.h>
+#include <string>
 
 namespace aliyun {
 namespace tablestore {
 namespace core {
 namespace http {
 
-typedef std::map<
-    std::string, std::string,
-    util::QuasiLexicographicLess<std::string> > Headers;
-typedef std::map<
-    util::MemPiece, util::MemPiece,
-    util::QuasiLexicographicLess<util::MemPiece> > InplaceHeaders;
-typedef std::function<
-    void(const Tracker&,
-        std::optional<OTSError>& err,
-        InplaceHeaders& respHeaders,
-        std::deque<util::MemPiece>& respBody)
-    > ResponseCallback;
+typedef std::map<std::string, std::string,
+                 util::QuasiLexicographicLess<std::string>>
+    Headers;
+typedef std::map<util::MemPiece, util::MemPiece,
+                 util::QuasiLexicographicLess<util::MemPiece>>
+    InplaceHeaders;
+typedef std::function<void(const Tracker &, std::optional<OTSError> &err,
+                           InplaceHeaders &respHeaders,
+                           std::deque<util::MemPiece> &respBody)>
+    ResponseCallback;
 typedef std::function<void()> TimeoutCallback;
 
+struct Endpoint {
+  enum Protocol {
+    HTTP,
+    HTTPS,
+  };
 
-struct Endpoint
-{
-    enum Protocol
-    {
-        HTTP,
-        HTTPS,
-    };
+  explicit Endpoint();
+  explicit Endpoint(Endpoint &&) = default;
+  explicit Endpoint(const Endpoint &) = default;
+  Endpoint &operator=(Endpoint &&) = default;
 
-    explicit Endpoint();
-    explicit Endpoint(const util::MoveHolder<Endpoint>&);
-    Endpoint& operator=(const util::MoveHolder<Endpoint>&);
+  static std::optional<std::string> parse(Endpoint &, const std::string &);
 
-    static std::optional<std::string> parse(Endpoint&, const std::string&);
+  void prettyPrint(std::string &) const;
 
-    void prettyPrint(std::string&) const;
-
-    Protocol mProtocol;
-    std::string mHost;
-    std::string mPort;
+  Protocol mProtocol;
+  std::string mHost;
+  std::string mPort;
 };
 
 } // namespace http

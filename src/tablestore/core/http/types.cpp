@@ -15,18 +15,6 @@ Endpoint::Endpoint()
   : mProtocol(HTTP)
 {}
 
-Endpoint::Endpoint(const MoveHolder<Endpoint>& a)
-{
-    *this = a;
-}
-
-Endpoint& Endpoint::operator=(const MoveHolder<Endpoint>& a)
-{
-    moveAssign(mProtocol, util::move(a->mProtocol));
-    moveAssign(mHost, util::move(a->mHost));
-    moveAssign(mPort, util::move(a->mPort));
-    return *this;
-}
 
 namespace {
 

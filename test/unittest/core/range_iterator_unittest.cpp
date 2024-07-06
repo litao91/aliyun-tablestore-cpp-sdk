@@ -67,7 +67,7 @@ std::optional<OTSError> collect(deque<Row>& rows, RangeIterator& iter)
         }
         Row& r = iter.get();
         rows.push_back(Row());
-        moveAssign(rows.back(), util::move(r));
+        moveAssign(rows.back(), std::move(r));
     }
     return std::optional<OTSError>();
 }
@@ -78,7 +78,7 @@ std::optional<OTSError> getRange_empty(
     const GetRangeRequest& req)
 {
     GetRangeResponse emptyResp;
-    moveAssign(resp, util::move(emptyResp));
+    moveAssign(resp, std::move(emptyResp));
     return std::optional<OTSError>();
 }
 
