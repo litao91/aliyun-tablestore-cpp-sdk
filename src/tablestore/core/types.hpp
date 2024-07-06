@@ -179,6 +179,7 @@ public:
   explicit DequeBasedVector(DequeBasedVector &&) = default;
 
   DequeBasedVector &operator=(DequeBasedVector &&a) = default;
+  DequeBasedVector &operator=(const DequeBasedVector &a) = default;
 
   void prettyPrint(std::string &out) const { IVector<Elem>::prettyPrint(out); }
 
@@ -461,6 +462,7 @@ public:
   explicit PrimaryKeyValue(PrimaryKeyValue &&) = default;
   PrimaryKeyValue(const PrimaryKeyValue &) = default;
   PrimaryKeyValue &operator=(PrimaryKeyValue &&) = default;
+  PrimaryKeyValue &operator=(const PrimaryKeyValue &) = default;
 
   Category category() const;
   void prettyPrint(std::string &) const;
@@ -557,6 +559,7 @@ public:
       : mName(std::move(a.mName)), mValue(std::move(a.mValue)) {}
 
   PrimaryKeyColumn &operator=(PrimaryKeyColumn &&) = default;
+  PrimaryKeyColumn &operator=(const PrimaryKeyColumn &) = default;
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -584,6 +587,7 @@ public:
   explicit PrimaryKey(PrimaryKey &&a) = default;
 
   PrimaryKey &operator=(PrimaryKey &&a) = default;
+  PrimaryKey &operator=(const PrimaryKey &a) = default;
 
   int64_t size() const { return mColumns.size(); }
 
@@ -1080,6 +1084,7 @@ public:
   explicit Condition(Condition &&a) = default;
 
   Condition &operator=(Condition &&);
+  Condition &operator=(const Condition &);
   bool operator==(const Condition &) const;
   bool operator!=(const Condition &b) const { return !(*this == b); }
 
@@ -1118,6 +1123,7 @@ protected:
   explicit RowChange(const RowChange &) = default;
   explicit RowChange(RowChange &&) = default;
   RowChange &operator=(RowChange &&) = default;
+  RowChange &operator=(const RowChange &) = default;
 
   virtual void prettyPrint(std::string &) const;
   bool operator==(const RowChange &) const;
@@ -1154,8 +1160,10 @@ class RowPutChange : public RowChange {
 public:
   explicit RowPutChange() {}
   explicit RowPutChange(RowPutChange &&a) = default;
+  explicit RowPutChange(const RowPutChange &a) = default;
 
   RowPutChange &operator=(RowPutChange &&) = default;
+  RowPutChange &operator=(const RowPutChange &) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
@@ -1232,6 +1240,7 @@ public:
   explicit RowUpdateChange(const RowUpdateChange &a) = default;
 
   RowUpdateChange &operator=(RowUpdateChange &&);
+  RowUpdateChange &operator=(const RowUpdateChange &);
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;
   void reset();
@@ -1254,6 +1263,7 @@ public:
   explicit RowDeleteChange(RowDeleteChange &&a) = default;
 
   RowDeleteChange &operator=(RowDeleteChange &&a) = default;
+  RowDeleteChange &operator=(const RowDeleteChange &a) = default;
 
   void prettyPrint(std::string &) const;
   std::optional<OTSError> validate() const;

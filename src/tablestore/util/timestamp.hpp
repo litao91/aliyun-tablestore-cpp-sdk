@@ -58,9 +58,7 @@ protected:
   explicit ComparableTime(int64_t v) noexcept : mValue(v) {}
 
 public:
-  bool operator==(const ComparableTime &ano) const noexcept {
-    return mValue == ano.mValue;
-  }
+  bool operator==(const ComparableTime &ano) const noexcept  = default;
   bool operator!=(const ComparableTime &ano) const noexcept {
     return mValue != ano.mValue;
   }
@@ -93,10 +91,7 @@ public:
       : ComparableTime(std::move(ano.mValue)) {}
   Duration(const Duration &ano) : ComparableTime(ano.mValue) {}
 
-  Duration &operator=(Duration &&ano) noexcept {
-    mValue = ano.mValue;
-    return *this;
-  }
+  Duration &operator=(const Duration &ano) noexcept = default;
 
   /*
    * templating, in order to support both integer and double/float.
@@ -194,10 +189,7 @@ public:
   MonotonicTime(MonotonicTime const &ano) noexcept
       : ComparableTime(ano.mValue) {}
 
-  MonotonicTime &operator=(MonotonicTime &ano) noexcept {
-    mValue = ano.mValue;
-    return *this;
-  }
+  MonotonicTime &operator=(const MonotonicTime &ano) noexcept = default; 
 
   static MonotonicTime now();
 
@@ -259,10 +251,7 @@ public:
   explicit UtcTime() noexcept : ComparableTime(0) {}
   UtcTime(const UtcTime &ano) noexcept : ComparableTime(ano.mValue) {}
 
-  UtcTime &operator=(const UtcTime &a) {
-    mValue = a.mValue;
-    return *this;
-  }
+  UtcTime &operator=(const UtcTime &a) = default;
 
   static UtcTime fromUsec(int64_t usec) noexcept { return UtcTime(usec); }
   static UtcTime fromMsec(int64_t msec) noexcept {

@@ -168,7 +168,7 @@ string AsyncClientBase::sign(const string &path,
   }
   FOREACH_ITER(i, add) {
     if (i->first.startsWith(prefix)) {
-      headers[i->first] = i->second;
+      headers[i->first] = std::move(i->second);
     }
   }
 

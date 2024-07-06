@@ -48,8 +48,8 @@ template <class OkType, class ErrType> class Result {
 public:
   explicit Result() : mResultType(OK), mOkValue(), mErrValue() {}
 
-  explicit Result(const Result &&a) = default;
-  explicit Result(Result &a) = default;
+  explicit Result(Result &&a) = default;
+  explicit Result(const Result &a) = default;
 
   Result &operator=(Result &&a) = default;
 

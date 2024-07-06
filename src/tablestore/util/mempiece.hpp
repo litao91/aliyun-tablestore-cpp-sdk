@@ -61,8 +61,12 @@ public:
       : mData(static_cast<const uint8_t *>(data)), mLen(len) {}
 
   explicit MemPiece(MemPiece &&ano) = default;
+  // TODO: dangerous
+  explicit MemPiece(const MemPiece &ano) = default;
 
   MemPiece &operator=(MemPiece &&ano) = default;
+  // TODO: dangerous
+  MemPiece &operator=(const MemPiece &ano) = default;
 
   template <class T> static MemPiece from(const T &x) {
     impl::ToMemPiece<T> p;

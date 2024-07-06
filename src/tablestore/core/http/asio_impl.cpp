@@ -56,7 +56,7 @@ AsioImpl::AsioImpl(
     mTimerCenter(mIoService, mLogger, mActors, mSeqGen)
 {
     Thread t(bind(&AsioImpl::loop, this));
-    moveAssign(mLoopThread, std::move(t));
+    mLoopThread = std::move(t);
 
     mConnector.start();
 }
